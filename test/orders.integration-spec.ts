@@ -39,7 +39,7 @@ const orderRequest = {
   items: [{ name: 'Book', quantity: 1, unit_value: 100 }],
 };
 
-describe('POST /api/v1/orders (database integration)', () => {
+describe('order lifecycle APIs (database integration)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
 
@@ -146,6 +146,65 @@ describe('POST /api/v1/orders (database integration)', () => {
       code: 'IDEMPOTENCY_CONFLICT',
       details: [],
     });
+  });
+
+  it('tracks and idempotently cancels an order with complete audit history', async () => {
+    const lifecycleOrder = {
+      ...orderRequest,
+      order_id: 'INTEGRATION-LIFECYCLE-1002',
+      invoice: {
+        ...orderRequest.invoice,
+        number: 'INV-INTEGRATION-1002',
+      },
+    };
+    await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .set('x-request-id', 'integration-lifecycle-create')
+      .send(lifecycleOrder)
+      .expect(201);
+
+    const tracking = await request(app.getHttpServer())
+      .get(`/api/v1/orders/${lifecycleOrder.order_id}/track`)
+      .set('x-request-id', 'integration-lifecycle-track')
+      .expect(200);
+    expect(tracking.body).toMatchObject({
+      order_id: lifecycleOrder.order_id,
+      courier_partner: 'mock',
+      current_status: 'CREATED',
+      events: [{ status: 'CREATED' }],
+    });
+
+    const cancellation = await request(app.getHttpServer())
+      .post(`/api/v1/orders/${lifecycleOrder.order_id}/cancel`)
+      .set('x-request-id', 'integration-lifecycle-cancel')
+      .expect(200);
+    expect(cancellation.body).toMatchObject({
+      order_id: lifecycleOrder.order_id,
+      courier_partner: 'mock',
+      status: 'CANCELLED',
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${lifecycleOrder.order_id}/cancel`)
+      .set('x-request-id', 'integration-lifecycle-cancel-replay')
+      .expect(200);
+
+    const stored = await prisma.order.findUniqueOrThrow({
+      where: { orderId: lifecycleOrder.order_id },
+      include: {
+        shipments: {
+          include: { apiAttempts: true, trackingEvents: true },
+        },
+      },
+    });
+    expect(stored.status).toBe('CANCELLED');
+    expect(stored.shipments[0].status).toBe('CANCELLED');
+    expect(
+      stored.shipments[0].apiAttempts
+        .map((attempt) => attempt.operation)
+        .sort(),
+    ).toEqual(['CANCEL_SHIPMENT', 'CREATE_SHIPMENT', 'TRACK_SHIPMENT']);
+    expect(stored.shipments[0].trackingEvents).toHaveLength(3);
   });
 });
 

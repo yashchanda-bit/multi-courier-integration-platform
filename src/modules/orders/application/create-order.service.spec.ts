@@ -19,6 +19,7 @@ const pendingOrder = (): PersistedOrder => ({
   createdAt: new Date('2026-08-05T00:00:00.000Z'),
   activeShipment: {
     id: 'shipment-db-id',
+    courierPartnerId: 'courier-db-id',
     courierPartnerCode: 'mock',
     courierShipmentId: null,
     awbNumber: null,
@@ -51,6 +52,9 @@ describe(CreateOrderService.name, () => {
       reserve: jest.fn(),
       completeShipment: jest.fn(),
       failShipment: jest.fn(),
+      recordTracking: jest.fn(),
+      recordCancellation: jest.fn(),
+      recordOperationFailure: jest.fn(),
     };
     courierPartners = { findByCode: jest.fn() };
     adapter = new MockCourierAdapter();

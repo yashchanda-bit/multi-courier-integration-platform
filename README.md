@@ -9,10 +9,11 @@ public API.
 
 The NestJS foundation, PostgreSQL persistence, normalized contracts, global
 error handling, idempotent order creation, MockCourier, and the UrbaneBolt
-adapter are ready. Tracking and cancellation routes and background bulk
-processing are being implemented incrementally.
+adapter are ready. Synchronous create, tracking, and idempotent cancellation
+routes are implemented with database audit history. Background bulk processing
+is being implemented incrementally.
 
-## Planned API
+## API
 
 ```http
 POST /api/v1/orders

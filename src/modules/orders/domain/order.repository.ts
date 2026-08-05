@@ -1,10 +1,11 @@
 import { NormalizedOrder } from './order';
-import { ShipmentStatus } from './shipment';
+import { ShipmentStatus, TrackingEventResult } from './shipment';
 
 export const ORDER_REPOSITORY = Symbol('ORDER_REPOSITORY');
 
 export interface PersistedShipment {
   id: string;
+  courierPartnerId: string;
   courierPartnerCode: string;
   courierShipmentId: string | null;
   awbNumber: string | null;
@@ -54,6 +55,43 @@ export interface FailShipmentInput {
   durationMs: number;
 }
 
+export interface RecordTrackingInput {
+  orderDatabaseId: string;
+  shipmentDatabaseId: string;
+  courierPartnerId: string;
+  currentStatus: ShipmentStatus;
+  courierStatusCode: string;
+  events: Array<TrackingEventResult & { eventFingerprint: string }>;
+  responsePayload: unknown;
+  requestPayload: unknown;
+  requestId: string;
+  durationMs: number;
+}
+
+export interface RecordCancellationInput {
+  orderDatabaseId: string;
+  shipmentDatabaseId: string;
+  courierPartnerId: string;
+  status: ShipmentStatus;
+  courierStatusCode: string;
+  requestPayload: unknown;
+  responsePayload: unknown;
+  eventFingerprint: string;
+  requestId: string;
+  durationMs: number;
+}
+
+export interface RecordOperationFailureInput {
+  shipmentDatabaseId: string;
+  courierPartnerId: string;
+  operation: 'TRACK_SHIPMENT' | 'CANCEL_SHIPMENT';
+  requestPayload: unknown;
+  requestId: string;
+  errorCode: string;
+  errorMessage: string;
+  durationMs: number;
+}
+
 export interface OrderRepository {
   findByOrderId(orderId: string): Promise<PersistedOrder | null>;
   reserve(input: ReserveOrderInput): Promise<{
@@ -62,4 +100,7 @@ export interface OrderRepository {
   }>;
   completeShipment(input: CompleteShipmentInput): Promise<PersistedOrder>;
   failShipment(input: FailShipmentInput): Promise<void>;
+  recordTracking(input: RecordTrackingInput): Promise<void>;
+  recordCancellation(input: RecordCancellationInput): Promise<void>;
+  recordOperationFailure(input: RecordOperationFailureInput): Promise<void>;
 }

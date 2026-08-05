@@ -6,6 +6,9 @@ import {
   FailShipmentInput,
   OrderRepository,
   PersistedOrder,
+  RecordCancellationInput,
+  RecordOperationFailureInput,
+  RecordTrackingInput,
   ReserveOrderInput,
 } from '../domain/order.repository';
 import { ShipmentStatus } from '../domain/shipment';
@@ -175,6 +178,108 @@ export class PrismaOrderRepository implements OrderRepository {
     ]);
   }
 
+  async recordTracking(input: RecordTrackingInput): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.shipment.update({
+        where: { id: input.shipmentDatabaseId },
+        data: {
+          status: input.currentStatus,
+          courierStatusCode: input.courierStatusCode,
+        },
+      });
+      if (input.events.length > 0) {
+        await transaction.trackingEvent.createMany({
+          data: input.events.map((event) => ({
+            shipmentId: input.shipmentDatabaseId,
+            normalizedStatus: event.status,
+            courierStatusCode: event.courierStatusCode,
+            courierStatusDescription: event.courierStatusDescription,
+            courierReasonCode: event.courierReasonCode,
+            courierReasonDescription: event.courierReasonDescription,
+            location: event.location,
+            courierEventTime: event.eventTime,
+            eventFingerprint: event.eventFingerprint,
+            rawPayload: toJson(event.rawPayload),
+          })),
+          skipDuplicates: true,
+        });
+      }
+      await transaction.courierApiAttempt.create({
+        data: {
+          shipmentId: input.shipmentDatabaseId,
+          courierPartnerId: input.courierPartnerId,
+          operation: 'TRACK_SHIPMENT',
+          attemptNumber: 1,
+          requestId: input.requestId,
+          requestPayload: toJson(input.requestPayload),
+          responsePayload: toJson(input.responsePayload),
+          businessStatus: 'SUCCESS',
+          durationMs: input.durationMs,
+        },
+      });
+    });
+  }
+
+  async recordCancellation(input: RecordCancellationInput): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.shipment.update({
+        where: { id: input.shipmentDatabaseId },
+        data: {
+          status: input.status,
+          courierStatusCode: input.courierStatusCode,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: input.orderDatabaseId },
+        data: { status: 'CANCELLED' },
+      }),
+      this.prisma.trackingEvent.createMany({
+        data: [
+          {
+            shipmentId: input.shipmentDatabaseId,
+            normalizedStatus: input.status,
+            courierStatusCode: input.courierStatusCode,
+            eventFingerprint: input.eventFingerprint,
+            rawPayload: toJson(input.responsePayload),
+          },
+        ],
+        skipDuplicates: true,
+      }),
+      this.prisma.courierApiAttempt.create({
+        data: {
+          shipmentId: input.shipmentDatabaseId,
+          courierPartnerId: input.courierPartnerId,
+          operation: 'CANCEL_SHIPMENT',
+          attemptNumber: 1,
+          requestId: input.requestId,
+          requestPayload: toJson(input.requestPayload),
+          responsePayload: toJson(input.responsePayload),
+          businessStatus: 'SUCCESS',
+          durationMs: input.durationMs,
+        },
+      }),
+    ]);
+  }
+
+  async recordOperationFailure(
+    input: RecordOperationFailureInput,
+  ): Promise<void> {
+    await this.prisma.courierApiAttempt.create({
+      data: {
+        shipmentId: input.shipmentDatabaseId,
+        courierPartnerId: input.courierPartnerId,
+        operation: input.operation,
+        attemptNumber: 1,
+        requestId: input.requestId,
+        requestPayload: toJson(input.requestPayload),
+        businessStatus: 'FAILED',
+        errorCode: input.errorCode,
+        errorMessage: input.errorMessage,
+        durationMs: input.durationMs,
+      },
+    });
+  }
+
   private mapOrder(order: OrderWithActiveShipment): PersistedOrder {
     const shipment = order.shipments[0];
     if (!shipment) {
@@ -190,6 +295,7 @@ export class PrismaOrderRepository implements OrderRepository {
       createdAt: order.createdAt,
       activeShipment: {
         id: shipment.id,
+        courierPartnerId: shipment.courierPartnerId,
         courierPartnerCode: shipment.courierPartner.code,
         courierShipmentId: shipment.courierShipmentId,
         awbNumber: shipment.awbNumber,
