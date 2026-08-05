@@ -31,7 +31,7 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
     const requestId = request.requestId ?? randomUUID();
 
     const normalized = this.normalize(exception);
-    this.logException(exception, requestId, request.method, request.url);
+    this.logException(exception, requestId, request);
     const body: ErrorResponse = {
       error: {
         code: normalized.code,
@@ -47,10 +47,17 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
   private logException(
     exception: unknown,
     requestId: string,
-    method: string,
-    url: string,
+    request: RequestWithId,
   ): void {
-    const context = `${method} ${url} request_id=${requestId}`;
+    const body: unknown = request.body;
+    const bodyRecord = this.isRecord(body) ? body : undefined;
+    const orderId = this.logValue(
+      bodyRecord?.order_id ?? request.params.orderId ?? 'unknown',
+    );
+    const courierPartner = this.logValue(
+      bodyRecord?.courier_partner ?? 'unknown',
+    );
+    const context = `${request.method} ${request.url} request_id=${requestId} order_id=${orderId} courier_partner=${courierPartner}`;
     if (exception instanceof ApplicationError && exception.httpStatus < 500) {
       this.logger.warn(
         `${context} error=${exception.name} code=${exception.code}`,
@@ -68,6 +75,15 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
       return;
     }
     this.logger.error(`${context} error=UnknownException`);
+  }
+
+  private logValue(value: unknown): string {
+    if (typeof value !== 'string') return 'unknown';
+    return value.replace(/[^a-zA-Z0-9_.:-]/g, '_').slice(0, 100) || 'unknown';
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 
   private normalize(exception: unknown): {

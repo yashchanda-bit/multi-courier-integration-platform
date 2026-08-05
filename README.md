@@ -2,8 +2,8 @@
 
 A backend service that gives e-commerce applications one API for working with
 different courier partners. UrbaneBolt is the first real integration, and a mock
-courier will demonstrate that new partners can be added without changing the
-public API.
+courier demonstrates that new partners can be added without changing the public
+API.
 
 ## Current status
 
@@ -27,6 +27,9 @@ GET  /api/v1/batches/{batch_id}
 Consumers send a normalized order and choose a courier using
 `courier_partner`. They do not need to understand the courier's native request or
 response format.
+
+Runnable, credential-free requests for every endpoint are in
+[docs/api-examples.md](docs/api-examples.md).
 
 ## Technology
 
@@ -65,6 +68,17 @@ Bulk creation accepts `{ "orders": [...] }` and returns HTTP `202` with a
 `batch_id` and `status_url`. Polling that URL returns aggregate counts plus the
 success or normalized failure for every submitted order.
 
+The database has seven tables. An order has one or more shipments; shipments
+belong to courier partners and own append-only tracking events and API-attempt
+audits. Batches own batch items, and a successful item links back to its order.
+Courier-specific payloads stay at the shipment/audit boundary, while public
+DTOs remain courier-independent.
+
+The main trade-off is eventual consistency for bulk requests: PostgreSQL stores
+batch state and Redis stores durable job payloads. The API stays responsive and
+supports partial success, but Redis must be available to accept new batches. If
+enqueueing fails, the persisted batch and all its items are marked failed.
+
 ## Local setup
 
 Prerequisites:
@@ -93,6 +107,30 @@ npm run start:dev
 PostgreSQL listens on port `5432` and Redis on `6379` by default. Override the
 development ports and credentials in `.env` when necessary.
 
+## Environment variables
+
+| Variable                                              | Purpose                           | Local default                                |
+| ----------------------------------------------------- | --------------------------------- | -------------------------------------------- |
+| `NODE_ENV` / `PORT`                                   | Runtime mode and HTTP port        | `development` / `3000`                       |
+| `DATABASE_URL`                                        | PostgreSQL connection             | Local Compose database                       |
+| `REDIS_URL`                                           | BullMQ Redis connection           | `redis://localhost:6379`                     |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Local Compose database            | `courier_platform` / `postgres` / `postgres` |
+| `POSTGRES_PORT` / `REDIS_PORT`                        | Local published ports             | `5432` / `6379`                              |
+| `ENABLE_MOCK_COURIER`                                 | Enables MockCourier during seed   | `true`                                       |
+| `BULK_QUEUE_NAME`                                     | Redis queue name                  | `bulk-orders`                                |
+| `BULK_WORKER_ENABLED`                                 | Runs workers in this process      | `true`                                       |
+| `BULK_WORKER_CONCURRENCY`                             | Concurrent bulk items per process | `10`                                         |
+| `BULK_JOB_RETENTION_SECONDS`                          | Completed-job retention           | `86400`                                      |
+| `URBANEBOLT_BASE_URL`                                 | UrbaneBolt API origin             | UAT origin                                   |
+| `URBANEBOLT_USERNAME` / `URBANEBOLT_PASSWORD`         | Courier credentials               | Empty                                        |
+| `URBANEBOLT_CUSTOMER_CODE`                            | Manifest customer identifier      | Empty                                        |
+| `URBANEBOLT_TIMEOUT_MS`                               | Per-request timeout               | `5000`                                       |
+| `URBANEBOLT_RETRY_MAX_ATTEMPTS`                       | Bounded transient attempts        | `3`                                          |
+| `URBANEBOLT_RETRY_BASE_DELAY_MS`                      | Backoff base delay                | `250`                                        |
+
+`.env.example` is the authoritative template. Use a managed secret store outside
+local development.
+
 ## Quality checks
 
 ```bash
@@ -103,6 +141,7 @@ npm test
 npm run test:e2e
 npm run test:integration
 npm run build
+npm audit --omit=dev
 ```
 
 The same checks run automatically in GitHub Actions. Automated tests will mock
@@ -125,9 +164,8 @@ business services, courier implementations, or the database schema.
 
 ## Configuration and secrets
 
-Configuration will come from environment variables. A future `.env.example`
-will document required values such as database URL, Redis URL, courier base URL,
-timeouts, retries, and credential names.
+All runtime configuration comes from validated environment variables documented
+in `.env.example`; credentials and tokens are never hardcoded.
 
 To enable UrbaneBolt, provide its username, password, customer code, base URL,
 timeout, and retry settings from `.env.example`, then enable `urbanebolt` in the
@@ -151,5 +189,5 @@ Never commit:
 - Bulk creation accepts at most 100 orders and returns a batch ID.
 - Business failures may be returned by a courier with HTTP 200, so adapters must
   inspect the response body.
-- Ambiguous courier timeouts are retained for reconciliation rather than blindly
-  retried.
+- UrbaneBolt manifest retries rely on its stable `orderNumber`; exhausted or
+  ambiguous failures are persisted for reconciliation.

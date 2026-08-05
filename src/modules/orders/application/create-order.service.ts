@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { ApplicationError } from '../../../common/errors/application-error';
@@ -34,6 +34,8 @@ export interface CreateOrderOutcome {
 
 @Injectable()
 export class CreateOrderService {
+  private readonly logger = new Logger(CreateOrderService.name);
+
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orders: OrderRepository,
@@ -76,6 +78,10 @@ export class CreateOrderService {
         error instanceof ApplicationError
           ? error
           : new CourierOperationFailedError({ cause: error });
+      this.logger.error(
+        `Courier operation failed operation=create_shipment order_id=${order.orderId} courier_partner=${order.courierPartner} request_id=${requestId} error_type=${normalized.code}`,
+        error instanceof Error ? error.stack : normalized.stack,
+      );
       await this.orders.failShipment({
         orderDatabaseId: reservation.order.id,
         shipmentDatabaseId: reservation.order.activeShipment.id,

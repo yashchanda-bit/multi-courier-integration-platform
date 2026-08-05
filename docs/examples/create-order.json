@@ -1,0 +1,49 @@
+{
+  "order_id": "DEMO-ORDER-1001",
+  "courier_partner": "mock",
+  "consignee": {
+    "name": "Demo Customer",
+    "phone": "+919999999999",
+    "email": "customer@example.com",
+    "address_line_1": "42 Demo Street",
+    "city": "Gurugram",
+    "state": "Haryana",
+    "country": "India",
+    "postal_code": "122001"
+  },
+  "shipper": {
+    "name": "Demo Warehouse",
+    "phone": "+919888888888",
+    "email": "warehouse@example.com",
+    "address_line_1": "10 Warehouse Road",
+    "city": "Gurugram",
+    "state": "Haryana",
+    "country": "India",
+    "postal_code": "122017"
+  },
+  "package": {
+    "weight_kg": 1.1,
+    "length_cm": 12,
+    "breadth_cm": 10,
+    "height_cm": 10,
+    "pieces": 1
+  },
+  "payment": {
+    "mode": "COD",
+    "collectable_amount": 499
+  },
+  "invoice": {
+    "number": "INV-DEMO-1001",
+    "date": "2026-08-06",
+    "value": 499
+  },
+  "items": [
+    {
+      "name": "Demo product",
+      "quantity": 1,
+      "unit_value": 499,
+      "sku": "DEMO-SKU-1"
+    }
+  ],
+  "service_level": "SDD"
+}

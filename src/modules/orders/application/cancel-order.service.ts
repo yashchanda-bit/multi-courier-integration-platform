@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { ApplicationError } from '../../../common/errors/application-error';
@@ -21,6 +21,8 @@ export interface CancelOrderResponse {
 
 @Injectable()
 export class CancelOrderService {
+  private readonly logger = new Logger(CancelOrderService.name);
+
   constructor(
     @Inject(ORDER_REPOSITORY) private readonly orders: OrderRepository,
     @Inject(COURIER_PARTNER_REPOSITORY)
@@ -63,6 +65,10 @@ export class CancelOrderService {
         error instanceof ApplicationError
           ? error
           : new CourierLifecycleFailedError('cancellation', { cause: error });
+      this.logger.error(
+        `Courier operation failed operation=cancel_shipment order_id=${orderId} courier_partner=${shipment.courierPartnerCode} request_id=${requestId} error_type=${normalized.code}`,
+        error instanceof Error ? error.stack : normalized.stack,
+      );
       await this.orders.recordOperationFailure({
         shipmentDatabaseId: shipment.id,
         courierPartnerId: shipment.courierPartnerId,

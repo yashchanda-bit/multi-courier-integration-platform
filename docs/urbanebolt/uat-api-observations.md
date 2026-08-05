@@ -33,20 +33,20 @@ tokens, personal data, cookies, and signed label URLs are intentionally omitted.
 
 ## Endpoint inventory
 
-| Operation | Method and path | Observed result |
-|---|---|---|
-| Authenticate | `POST /api/v1/auth/getToken/` | HTTP 200, success |
-| Pincode lookup | `GET /api/v1/location/pincodes/?pincodes=...` | HTTP 200, success |
-| Bulk pincodes | `GET /api/v1/location/pincodes/?type=ex` | HTTP 200, success |
-| Manifest | `POST /api/v1/services/manifest/` | HTTP 200, shipment created |
-| Print label data | `GET /api/v1/services/label/?awbs=...` | HTTP 200, success |
-| Tracking | `GET /api/v1/services/tracking-pub/?awb=...` | HTTP 200, success |
-| Cancellation | `POST /api/v1/services/cancel/` | HTTP 200, success and failure cases |
-| NDR/RTO | `POST /api/v1/services/ndr/?type=rtoLock` | HTTP 200, success |
-| Payment-mode change | `POST /api/v1/services/update-paymode/` | HTTP 200, state-dependent failure |
-| ePOD | `GET /api/v1/services/epod/?awbs=...` | HTTP 200, no ePOD for new shipment |
-| NDR reattempt | `POST /api/v1/services/ndr/?type=reAttempt` | HTTP 200, state-dependent failure |
-| Global manifest | `POST /api/v1/services/global-manifest/` | HTTP 404 |
+| Operation           | Method and path                               | Observed result                     |
+| ------------------- | --------------------------------------------- | ----------------------------------- |
+| Authenticate        | `POST /api/v1/auth/getToken/`                 | HTTP 200, success                   |
+| Pincode lookup      | `GET /api/v1/location/pincodes/?pincodes=...` | HTTP 200, success                   |
+| Bulk pincodes       | `GET /api/v1/location/pincodes/?type=ex`      | HTTP 200, success                   |
+| Manifest            | `POST /api/v1/services/manifest/`             | HTTP 200, shipment created          |
+| Print label data    | `GET /api/v1/services/label/?awbs=...`        | HTTP 200, success                   |
+| Tracking            | `GET /api/v1/services/tracking-pub/?awb=...`  | HTTP 200, success                   |
+| Cancellation        | `POST /api/v1/services/cancel/`               | HTTP 200, success and failure cases |
+| NDR/RTO             | `POST /api/v1/services/ndr/?type=rtoLock`     | HTTP 200, success                   |
+| Payment-mode change | `POST /api/v1/services/update-paymode/`       | HTTP 200, state-dependent failure   |
+| ePOD                | `GET /api/v1/services/epod/?awbs=...`         | HTTP 200, no ePOD for new shipment  |
+| NDR reattempt       | `POST /api/v1/services/ndr/?type=reAttempt`   | HTTP 200, state-dependent failure   |
+| Global manifest     | `POST /api/v1/services/global-manifest/`      | HTTP 404                            |
 
 ## Authentication
 
@@ -110,11 +110,11 @@ Each scan includes:
 
 Observed status codes:
 
-| Courier code | Description | Observed transition |
-|---|---|---|
-| `MAN` | Shipment Manifested | Initial create state |
-| `RTL` | RTO Lock | After successful NDR/RTO request |
-| `CAN` | Cancelled | After successful cancellation |
+| Courier code | Description         | Observed transition              |
+| ------------ | ------------------- | -------------------------------- |
+| `MAN`        | Shipment Manifested | Initial create state             |
+| `RTL`        | RTO Lock            | After successful NDR/RTO request |
+| `CAN`        | Cancelled           | After successful cancellation    |
 
 ## Cancellation
 
@@ -158,4 +158,3 @@ endpoint as unavailable or outdated until UrbaneBolt confirms its current URL.
 - The copied cookies are unnecessary for tested server-to-server calls.
 - `Cancellation Proccess` and other response messages contain spelling errors;
   never use human-readable messages as programmatic identifiers.
-

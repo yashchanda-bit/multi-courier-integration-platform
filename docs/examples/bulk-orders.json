@@ -1,0 +1,49 @@
+{
+  "orders": [
+    {
+      "order_id": "DEMO-BULK-ORDER-2001",
+      "courier_partner": "mock",
+      "consignee": {
+        "name": "Bulk Customer",
+        "phone": "+919999999999",
+        "address_line_1": "42 Demo Street",
+        "city": "Gurugram",
+        "state": "Haryana",
+        "country": "India",
+        "postal_code": "122001"
+      },
+      "shipper": {
+        "name": "Demo Warehouse",
+        "phone": "+919888888888",
+        "address_line_1": "10 Warehouse Road",
+        "city": "Gurugram",
+        "state": "Haryana",
+        "country": "India",
+        "postal_code": "122017"
+      },
+      "package": {
+        "weight_kg": 1,
+        "length_cm": 10,
+        "breadth_cm": 10,
+        "height_cm": 10,
+        "pieces": 1
+      },
+      "payment": {
+        "mode": "PREPAID",
+        "collectable_amount": 0
+      },
+      "invoice": {
+        "number": "INV-BULK-2001",
+        "date": "2026-08-06",
+        "value": 299
+      },
+      "items": [
+        {
+          "name": "Bulk demo product",
+          "quantity": 1,
+          "unit_value": 299
+        }
+      ]
+    }
+  ]
+}

@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
-    "format:check": "prettier --check \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
+    "format": "prettier --write \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \"docs/**/*.md\" \"docs/**/*.json\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \"docs/**/*.md\" \"docs/**/*.json\" \".github/**/*.yml\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
