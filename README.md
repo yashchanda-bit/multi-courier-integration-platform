@@ -10,8 +10,9 @@ public API.
 The NestJS foundation, PostgreSQL persistence, normalized contracts, global
 error handling, idempotent order creation, MockCourier, and the UrbaneBolt
 adapter are ready. Synchronous create, tracking, and idempotent cancellation
-routes are implemented with database audit history. Background bulk processing
-is being implemented incrementally.
+routes are implemented with database audit history. Bulk requests accept up to
+100 orders, return immediately, and are processed concurrently through BullMQ
+with per-order results.
 
 ## API
 
@@ -59,6 +60,10 @@ PostgreSQL stores normalized order and shipment state. Courier-specific request
 and response payloads are retained as sanitized JSON for audit and debugging.
 BullMQ processes bulk orders asynchronously so the HTTP request remains
 responsive and each item can succeed or fail independently.
+
+Bulk creation accepts `{ "orders": [...] }` and returns HTTP `202` with a
+`batch_id` and `status_url`. Polling that URL returns aggregate counts plus the
+success or normalized failure for every submitted order.
 
 ## Local setup
 

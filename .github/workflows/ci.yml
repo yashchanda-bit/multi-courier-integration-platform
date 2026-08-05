@@ -21,6 +21,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/courier_platform?schema=public
       REDIS_URL: redis://localhost:6379
       ENABLE_MOCK_COURIER: 'true'
+      BULK_WORKER_ENABLED: 'true'
     services:
       postgres:
         image: postgres:17-alpine
@@ -57,6 +58,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
 
       - name: Validate Docker Compose
         run: docker compose config --quiet

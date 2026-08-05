@@ -59,10 +59,12 @@ describe('order lifecycle APIs (database integration)', () => {
   });
 
   beforeEach(async () => {
+    await removeIntegrationBatches(prisma);
     await removeIntegrationOrders(prisma);
   });
 
   afterAll(async () => {
+    await removeIntegrationBatches(prisma);
     await removeIntegrationOrders(prisma);
     await app.close();
   });
@@ -206,7 +208,107 @@ describe('order lifecycle APIs (database integration)', () => {
     ).toEqual(['CANCEL_SHIPMENT', 'CREATE_SHIPMENT', 'TRACK_SHIPMENT']);
     expect(stored.shipments[0].trackingEvents).toHaveLength(3);
   });
+
+  it('processes a bulk request asynchronously with per-order partial success', async () => {
+    const successfulOrder = {
+      ...orderRequest,
+      order_id: 'INTEGRATION-BULK-SUCCESS-1003',
+      invoice: { ...orderRequest.invoice, number: 'INV-BULK-1003' },
+    };
+    const failedOrder = {
+      ...orderRequest,
+      order_id: 'INTEGRATION-BULK-FAILURE-1004',
+      courier_partner: 'missing',
+      invoice: { ...orderRequest.invoice, number: 'INV-BULK-1004' },
+    };
+    const accepted = await request(app.getHttpServer())
+      .post('/api/v1/orders/bulk')
+      .set('x-request-id', 'integration-bulk-request')
+      .send({ orders: [successfulOrder, failedOrder] })
+      .expect(202);
+    const acceptedBody = accepted.body as {
+      batch_id: string;
+      status: string;
+      total_count: number;
+      status_url: string;
+    };
+    expect(acceptedBody).toMatchObject({
+      status: 'PENDING',
+      total_count: 2,
+      status_url: `/api/v1/batches/${acceptedBody.batch_id}`,
+    });
+
+    const completed = await waitForBatch(app, acceptedBody.batch_id);
+    expect(completed).toMatchObject({
+      batch_id: acceptedBody.batch_id,
+      status: 'PARTIALLY_COMPLETED',
+      total_count: 2,
+      success_count: 1,
+      failure_count: 1,
+      items: [
+        {
+          position: 0,
+          order_id: successfulOrder.order_id,
+          courier_partner: 'mock',
+          status: 'SUCCEEDED',
+          error: null,
+        },
+        {
+          position: 1,
+          order_id: failedOrder.order_id,
+          courier_partner: 'missing',
+          status: 'FAILED',
+          error: { code: 'UNSUPPORTED_COURIER' },
+        },
+      ],
+    });
+    expect(
+      await prisma.order.count({
+        where: {
+          orderId: { in: [successfulOrder.order_id, failedOrder.order_id] },
+        },
+      }),
+    ).toBe(1);
+  });
 });
+
+const waitForBatch = async (
+  app: INestApplication<App>,
+  batchId: string,
+): Promise<Record<string, unknown>> => {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/batches/${batchId}`)
+      .expect(200);
+    const body = response.body as Record<string, unknown>;
+    if (
+      ['COMPLETED', 'PARTIALLY_COMPLETED', 'FAILED'].includes(
+        String(body.status),
+      )
+    ) {
+      return body;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Batch '${batchId}' did not reach a terminal state`);
+};
+
+const removeIntegrationBatches = async (
+  prisma: PrismaService,
+): Promise<void> => {
+  const batches = await prisma.batch.findMany({
+    where: {
+      items: {
+        some: { submittedOrderId: { startsWith: 'INTEGRATION-BULK-' } },
+      },
+    },
+    select: { id: true },
+  });
+  const batchIds = batches.map((batch) => batch.id);
+  if (batchIds.length === 0) return;
+  await prisma.batchItem.deleteMany({ where: { batchId: { in: batchIds } } });
+  await prisma.batch.deleteMany({ where: { id: { in: batchIds } } });
+};
 
 const removeIntegrationOrders = async (
   prisma: PrismaService,

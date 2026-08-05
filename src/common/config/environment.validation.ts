@@ -11,6 +11,12 @@ export const environmentValidationSchema = Joi.object({
   REDIS_URL: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
     .required(),
+  BULK_QUEUE_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/)
+    .default('bulk-orders'),
+  BULK_WORKER_ENABLED: Joi.boolean().default(true),
+  BULK_WORKER_CONCURRENCY: Joi.number().integer().min(1).max(100).default(10),
+  BULK_JOB_RETENTION_SECONDS: Joi.number().integer().min(60).default(86400),
   URBANEBOLT_BASE_URL: Joi.string()
     .uri({ scheme: ['https', 'http'] })
     .default('https://uat.urbanebolt.in'),
