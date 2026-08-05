@@ -1,0 +1,27 @@
+# Local secrets and credential-bearing API collections
+.env
+.env.*
+!.env.example
+*UrbaneBolt*postman_collection.json
+
+# Node.js / NestJS output
+node_modules/
+dist/
+coverage/
+.nyc_output/
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+
+# Local tooling and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local test and container state
+.testcontainers.properties
+tmp/
+temp/

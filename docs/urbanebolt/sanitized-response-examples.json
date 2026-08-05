@@ -1,0 +1,201 @@
+{
+  "authentication": {
+    "httpStatus": 200,
+    "body": {
+      "access_token": "<REDACTED>",
+      "expires_in": 86400,
+      "token_type": "Bearer",
+      "expires": "<ISO_TIMESTAMP>",
+      "status": "Success"
+    }
+  },
+  "pincodeLookup": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "Pincodes",
+      "data": [
+        {
+          "id": 1,
+          "pincode": 122001,
+          "inbound": true,
+          "outbound": true,
+          "rtn": true,
+          "isActive": true,
+          "serviceCenter": "Gurgaon DC - GGN",
+          "city": "Gurgaon - GGN",
+          "state": "Haryana - HR",
+          "region": "Central",
+          "zone": "Zone5",
+          "routeCode": "GGN/DLHH",
+          "serviceType": "SDD,NDD,ATA,PTP,2HR"
+        }
+      ],
+      "errorPincodes": []
+    }
+  },
+  "manifestSuccess": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "successResponse": [
+        {
+          "status": "Success",
+          "orderNumber": "<TEST_ORDER_ID>",
+          "awbNumber": 200000000000,
+          "routeCode": "GGN/DLHH",
+          "shippingLabel": "<REDACTED_SIGNED_URL>",
+          "customerCode": "<CUSTOMER_CODE>"
+        }
+      ],
+      "errorResponse": []
+    }
+  },
+  "manifestInvalidShape": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Failed",
+      "message": "Payload must be a list of shipments!"
+    }
+  },
+  "trackingManifested": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "Tracking",
+      "data": {
+        "awbNumber": 200000000000,
+        "orderNumber": "<TEST_ORDER_ID>",
+        "currentStatusCode": "MAN",
+        "currentStatusCodeDescription": "Shipment Manifested",
+        "currentReasonCode": "",
+        "currentReasonCodeDescription": "",
+        "scans": [
+          {
+            "statusDateTime": "<COURIER_DATETIME>",
+            "statusCode": "MAN",
+            "statusCodeDescription": "Shipment Manifested",
+            "reasonCode": "",
+            "reasonCodeDescription": "",
+            "currentLocation": "Gurgaon"
+          }
+        ]
+      }
+    }
+  },
+  "cancellationSuccess": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "Cancellation Proccess",
+      "successResponse": [
+        {
+          "orderNumber": "<TEST_ORDER_ID>",
+          "awb": "200000000000",
+          "message": "Cancelled"
+        }
+      ],
+      "failureResponse": []
+    }
+  },
+  "cancellationFailure": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "Cancellation Proccess",
+      "successResponse": [],
+      "failureResponse": [
+        {
+          "orderNumber": "<TEST_ORDER_ID>",
+          "awb": "200000000000",
+          "message": "Cancellation is not allowed on this stage!"
+        }
+      ]
+    }
+  },
+  "trackingCancelled": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "Tracking",
+      "data": {
+        "awbNumber": 200000000000,
+        "orderNumber": "<TEST_ORDER_ID>",
+        "remarks": "Shipment Cancelled By Customer",
+        "currentStatusCode": "CAN",
+        "currentStatusCodeDescription": "Cancelled",
+        "scans": [
+          {
+            "statusCode": "CAN",
+            "statusCodeDescription": "Cancelled"
+          },
+          {
+            "statusCode": "MAN",
+            "statusCodeDescription": "Shipment Manifested"
+          }
+        ]
+      }
+    }
+  },
+  "ndrRtoSuccess": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "NDR",
+      "successResponse": [
+        {
+          "status": "Success",
+          "awb": "200000000000",
+          "message": "RTO Locked!"
+        }
+      ],
+      "failedResponse": []
+    }
+  },
+  "ndrReattemptStateFailure": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "NDR",
+      "successResponse": [],
+      "failedResponse": [
+        {
+          "awb": "200000000000",
+          "message": "You can't update re-attempt at this moment!"
+        }
+      ]
+    }
+  },
+  "paymentModeStateFailure": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "PayMode Change",
+      "successResponse": [],
+      "failedResponse": [
+        {
+          "awb": "200000000000",
+          "message": "You can't change pay mode at this moment!"
+        }
+      ]
+    }
+  },
+  "epodUnavailable": {
+    "httpStatus": 200,
+    "body": {
+      "status": "Success",
+      "message": "EPod's",
+      "successResponse": [],
+      "failedResponse": [
+        {
+          "awb": "200000000000",
+          "message": "Requested AWB not found!"
+        }
+      ]
+    }
+  },
+  "globalManifest": {
+    "httpStatus": 404,
+    "body": null
+  }
+}
