@@ -31,7 +31,9 @@ Consumers send a normalized order and choose a courier using
 response format.
 
 Runnable, credential-free requests for every endpoint are in
-[docs/api-examples.md](docs/api-examples.md).
+[docs/api-examples.md](docs/api-examples.md). A ready-to-import Postman
+collection is in
+[docs/postman/multi-courier-integration-platform.postman_collection.json](docs/postman/multi-courier-integration-platform.postman_collection.json).
 
 ## Technology
 

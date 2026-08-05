@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "8b599b76-18ea-4e63-a66f-b27fdce7337a",
+    "name": "Multi-Courier Integration Platform",
+    "description": "Credential-free requests for the local API using MockCourier. Run the folders in order: Health, Orders, then Bulk Orders. The bulk request automatically saves batch_id for the status request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "POSTMAN-ORDER-1001",
+      "type": "string"
+    },
+    {
+      "key": "bulk_order_id",
+      "value": "POSTMAN-BULK-ORDER-2001",
+      "type": "string"
+    },
+    {
+      "key": "batch_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/live",
+            "description": "Confirms that the API process is serving requests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('process is up', () => pm.expect(pm.response.json().status).to.eql('up'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/ready",
+            "description": "Confirms that PostgreSQL and Redis are reachable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('dependencies are ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "postman-create-1001"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"courier_partner\": \"mock\",\n  \"consignee\": {\n    \"name\": \"Postman Customer\",\n    \"phone\": \"+919999999999\",\n    \"email\": \"customer@example.com\",\n    \"address_line_1\": \"42 Demo Street\",\n    \"city\": \"Gurugram\",\n    \"state\": \"Haryana\",\n    \"country\": \"India\",\n    \"postal_code\": \"122001\"\n  },\n  \"shipper\": {\n    \"name\": \"Postman Warehouse\",\n    \"phone\": \"+919888888888\",\n    \"address_line_1\": \"10 Warehouse Road\",\n    \"city\": \"Gurugram\",\n    \"state\": \"Haryana\",\n    \"country\": \"India\",\n    \"postal_code\": \"122017\"\n  },\n  \"package\": {\n    \"weight_kg\": 1.1,\n    \"length_cm\": 12,\n    \"breadth_cm\": 10,\n    \"height_cm\": 10,\n    \"pieces\": 1\n  },\n  \"payment\": {\n    \"mode\": \"COD\",\n    \"collectable_amount\": 499\n  },\n  \"invoice\": {\n    \"number\": \"INV-POSTMAN-1001\",\n    \"date\": \"2026-08-06\",\n    \"value\": 499\n  },\n  \"items\": [\n    {\n      \"name\": \"Postman demo product\",\n      \"quantity\": 1,\n      \"unit_value\": 499,\n      \"sku\": \"POSTMAN-SKU-1\"\n    }\n  ],\n  \"service_level\": \"SDD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/orders",
+            "description": "Creates a shipment through MockCourier. The first identical request returns 201; an idempotent replay returns 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('creates or replays idempotently', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "pm.test('returns the same order ID', () => pm.expect(pm.response.json().order_id).to.eql(pm.collectionVariables.get('order_id')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Track Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "postman-track-1001"
+              }
+            ],
+            "url": "{{base_url}}/orders/{{order_id}}/track",
+            "description": "Fetches tracking from MockCourier and appends new tracking history. Run Create Order first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns tracking', () => pm.response.to.have.status(200));",
+                  "pm.test('contains an AWB', () => pm.expect(pm.response.json().awb_number).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "postman-cancel-1001"
+              }
+            ],
+            "url": "{{base_url}}/orders/{{order_id}}/cancel",
+            "description": "Cancels the MockCourier shipment. Repeating the request is idempotent. Run Create Order first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('shipment is cancelled', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bulk Orders",
+      "item": [
+        {
+          "name": "Create Bulk Order Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "postman-bulk-2001"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orders\": [\n    {\n      \"order_id\": \"{{bulk_order_id}}\",\n      \"courier_partner\": \"mock\",\n      \"consignee\": {\n        \"name\": \"Bulk Customer\",\n        \"phone\": \"+919999999999\",\n        \"address_line_1\": \"42 Demo Street\",\n        \"city\": \"Gurugram\",\n        \"state\": \"Haryana\",\n        \"country\": \"India\",\n        \"postal_code\": \"122001\"\n      },\n      \"shipper\": {\n        \"name\": \"Postman Warehouse\",\n        \"phone\": \"+919888888888\",\n        \"address_line_1\": \"10 Warehouse Road\",\n        \"city\": \"Gurugram\",\n        \"state\": \"Haryana\",\n        \"country\": \"India\",\n        \"postal_code\": \"122017\"\n      },\n      \"package\": {\n        \"weight_kg\": 1,\n        \"length_cm\": 10,\n        \"breadth_cm\": 10,\n        \"height_cm\": 10,\n        \"pieces\": 1\n      },\n      \"payment\": {\n        \"mode\": \"PREPAID\",\n        \"collectable_amount\": 0\n      },\n      \"invoice\": {\n        \"number\": \"INV-POSTMAN-BULK-2001\",\n        \"date\": \"2026-08-06\",\n        \"value\": 299\n      },\n      \"items\": [\n        {\n          \"name\": \"Bulk demo product\",\n          \"quantity\": 1,\n          \"unit_value\": 299\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/orders/bulk",
+            "description": "Returns 202 immediately and stores the returned batch_id as a collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('accepts the batch', () => pm.response.to.have.status(202));",
+                  "const response = pm.response.json();",
+                  "pm.collectionVariables.set('batch_id', response.batch_id);",
+                  "pm.test('returns a batch ID', () => pm.expect(response.batch_id).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Bulk Order Batch",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "postman-batch-status-2001"
+              }
+            ],
+            "url": "{{base_url}}/batches/{{batch_id}}",
+            "description": "Reads per-order results. Run Create Bulk Order Batch first; repeat this request until processing reaches a terminal status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns batch state', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the stored batch ID', () => pm.expect(pm.response.json().batch_id).to.eql(pm.collectionVariables.get('batch_id')));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

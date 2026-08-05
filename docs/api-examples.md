@@ -7,6 +7,16 @@ them from the repository root after completing the README setup.
 BASE_URL=http://localhost:3000/api/v1
 ```
 
+The equivalent importable Postman collection is
+[`docs/postman/multi-courier-integration-platform.postman_collection.json`](postman/multi-courier-integration-platform.postman_collection.json).
+
+## Check application health
+
+```bash
+curl --fail-with-body "$BASE_URL/health/live"
+curl --fail-with-body "$BASE_URL/health/ready"
+```
+
 ## Create an order
 
 ```bash
