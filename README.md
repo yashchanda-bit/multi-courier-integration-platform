@@ -75,6 +75,7 @@ cp .env.example .env
 docker compose up -d
 npm run db:migrate:deploy
 npm run db:generate
+npm run db:seed
 ```
 
 Run in development mode:

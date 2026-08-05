@@ -7,13 +7,13 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"{src,test}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
-    "format:check": "prettier --check \"{src,test}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
+    "format": "prettier --write \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"{src,test,prisma}/**/*.ts\" \"*.{json,mjs}\" \"prisma.config.ts\" \"compose.yaml\" \"README.md\" \".github/**/*.yml\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint": "eslint \"{src,test,prisma}/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "typecheck": "tsc --noEmit",
     "db:format": "prisma format",
@@ -21,11 +21,13 @@
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "ts-node --transpile-only prisma/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:integration": "jest --config ./test/jest-integration.json --runInBand"
   },
   "engines": {
     "node": ">=22"
