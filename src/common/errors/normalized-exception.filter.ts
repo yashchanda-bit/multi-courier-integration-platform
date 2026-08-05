@@ -51,6 +51,12 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
     url: string,
   ): void {
     const context = `${method} ${url} request_id=${requestId}`;
+    if (exception instanceof ApplicationError && exception.httpStatus < 500) {
+      this.logger.warn(
+        `${context} error=${exception.name} code=${exception.code}`,
+      );
+      return;
+    }
     if (exception instanceof Error) {
       this.logger.error(`${context} error=${exception.name}`, exception.stack);
       return;

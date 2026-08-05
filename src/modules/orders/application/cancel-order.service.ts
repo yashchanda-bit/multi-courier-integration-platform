@@ -77,7 +77,6 @@ export class CancelOrderService {
     }
 
     await this.orders.recordCancellation({
-      orderDatabaseId: order.id,
       shipmentDatabaseId: shipment.id,
       courierPartnerId: shipment.courierPartnerId,
       status: result.status,

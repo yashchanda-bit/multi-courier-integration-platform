@@ -197,7 +197,7 @@ describe('order lifecycle APIs (database integration)', () => {
         },
       },
     });
-    expect(stored.status).toBe('CANCELLED');
+    expect(stored.status).toBe('SHIPMENT_CREATED');
     expect(stored.shipments[0].status).toBe('CANCELLED');
     expect(
       stored.shipments[0].apiAttempts

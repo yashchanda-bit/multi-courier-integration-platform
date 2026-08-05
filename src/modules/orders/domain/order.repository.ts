@@ -69,7 +69,6 @@ export interface RecordTrackingInput {
 }
 
 export interface RecordCancellationInput {
-  orderDatabaseId: string;
   shipmentDatabaseId: string;
   courierPartnerId: string;
   status: ShipmentStatus;

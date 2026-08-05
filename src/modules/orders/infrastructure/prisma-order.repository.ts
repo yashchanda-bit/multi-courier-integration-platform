@@ -229,10 +229,6 @@ export class PrismaOrderRepository implements OrderRepository {
           courierStatusCode: input.courierStatusCode,
         },
       });
-      await transaction.order.update({
-        where: { id: input.orderDatabaseId },
-        data: { status: 'CANCELLED' },
-      });
       await transaction.trackingEvent.createMany({
         data: [
           {
