@@ -7,8 +7,10 @@ public API.
 
 ## Current status
 
-The NestJS project foundation and CI checks are ready. Courier APIs, database
-persistence, and background bulk processing are being implemented incrementally.
+The NestJS foundation, PostgreSQL schema, normalized contracts, global error
+handling, courier registry, and MockCourier adapter are ready. Order persistence,
+the UrbaneBolt adapter, and background bulk processing are being implemented
+incrementally.
 
 ## Planned API
 

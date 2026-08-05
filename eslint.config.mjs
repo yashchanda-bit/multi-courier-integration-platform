@@ -31,4 +31,20 @@ export default tseslint.config(
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
+  {
+    files: ['src/modules/*/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@nestjs/*', '@prisma/*', 'axios', 'bullmq'],
+              message: 'Domain code must remain framework-independent.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

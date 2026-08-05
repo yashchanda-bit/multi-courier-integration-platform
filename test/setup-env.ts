@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL =
   'postgresql://postgres:postgres@localhost:5432/courier_platform_test';
