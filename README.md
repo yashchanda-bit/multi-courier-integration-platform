@@ -22,6 +22,8 @@ GET  /api/v1/orders/{order_id}/track
 POST /api/v1/orders/{order_id}/cancel
 POST /api/v1/orders/bulk
 GET  /api/v1/batches/{batch_id}
+GET  /api/v1/health/live
+GET  /api/v1/health/ready
 ```
 
 Consumers send a normalized order and choose a courier using
@@ -103,6 +105,16 @@ Run in development mode:
 ```bash
 npm run start:dev
 ```
+
+For a production-style container build:
+
+```bash
+docker build -t multi-courier-platform .
+```
+
+`health/live` confirms the process is serving traffic. `health/ready` returns
+ready only when PostgreSQL and Redis both respond. The application handles
+termination signals and closes database, queue, and worker connections cleanly.
 
 PostgreSQL listens on port `5432` and Redis on `6379` by default. Override the
 development ports and credentials in `.env` when necessary.

@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+docs
+test
+deliverables
+assignment.txt
+DESIGN.md
+*.pdf
+*postman_collection.json
+*.log

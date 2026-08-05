@@ -7,6 +7,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { BatchesModule } from './modules/batches/batches.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AppService } from './app.service';
     CouriersModule,
     OrdersModule,
     BatchesModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

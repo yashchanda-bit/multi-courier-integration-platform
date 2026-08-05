@@ -25,6 +25,13 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('exposes a dependency-free liveness probe', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/health/live')
+      .expect(200)
+      .expect({ status: 'up' });
+  });
+
   it('returns the normalized error shape with a request ID', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/does-not-exist')

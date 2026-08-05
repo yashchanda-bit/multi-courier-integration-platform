@@ -97,3 +97,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build production container
+        run: docker build --tag multi-courier-platform:ci .
