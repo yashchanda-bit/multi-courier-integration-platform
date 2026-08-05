@@ -7,7 +7,8 @@ RUN npm ci
 COPY nest-cli.json prisma.config.ts tsconfig.json tsconfig.build.json ./
 COPY prisma ./prisma
 COPY src ./src
-RUN npm run db:generate && npm run build && npm prune --omit=dev
+RUN DATABASE_URL=postgresql://build:build@invalid:5432/build \
+  npm run db:generate && npm run build && npm prune --omit=dev
 
 FROM node:22-alpine AS runtime
 
