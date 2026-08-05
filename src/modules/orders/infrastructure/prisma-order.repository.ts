@@ -221,19 +221,19 @@ export class PrismaOrderRepository implements OrderRepository {
   }
 
   async recordCancellation(input: RecordCancellationInput): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.shipment.update({
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.shipment.update({
         where: { id: input.shipmentDatabaseId },
         data: {
           status: input.status,
           courierStatusCode: input.courierStatusCode,
         },
-      }),
-      this.prisma.order.update({
+      });
+      await transaction.order.update({
         where: { id: input.orderDatabaseId },
         data: { status: 'CANCELLED' },
-      }),
-      this.prisma.trackingEvent.createMany({
+      });
+      await transaction.trackingEvent.createMany({
         data: [
           {
             shipmentId: input.shipmentDatabaseId,
@@ -244,8 +244,8 @@ export class PrismaOrderRepository implements OrderRepository {
           },
         ],
         skipDuplicates: true,
-      }),
-      this.prisma.courierApiAttempt.create({
+      });
+      await transaction.courierApiAttempt.create({
         data: {
           shipmentId: input.shipmentDatabaseId,
           courierPartnerId: input.courierPartnerId,
@@ -257,8 +257,8 @@ export class PrismaOrderRepository implements OrderRepository {
           businessStatus: 'SUCCESS',
           durationMs: input.durationMs,
         },
-      }),
-    ]);
+      });
+    });
   }
 
   async recordOperationFailure(
