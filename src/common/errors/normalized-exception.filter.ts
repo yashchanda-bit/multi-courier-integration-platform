@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Response } from 'express';
@@ -21,6 +22,8 @@ interface ErrorResponse {
 
 @Catch()
 export class NormalizedExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(NormalizedExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const context = host.switchToHttp();
     const request = context.getRequest<RequestWithId>();
@@ -28,6 +31,7 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
     const requestId = request.requestId ?? randomUUID();
 
     const normalized = this.normalize(exception);
+    this.logException(exception, requestId, request.method, request.url);
     const body: ErrorResponse = {
       error: {
         code: normalized.code,
@@ -38,6 +42,20 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
     };
 
     response.status(normalized.status).json(body);
+  }
+
+  private logException(
+    exception: unknown,
+    requestId: string,
+    method: string,
+    url: string,
+  ): void {
+    const context = `${method} ${url} request_id=${requestId}`;
+    if (exception instanceof Error) {
+      this.logger.error(`${context} error=${exception.name}`, exception.stack);
+      return;
+    }
+    this.logger.error(`${context} error=UnknownException`);
   }
 
   private normalize(exception: unknown): {
