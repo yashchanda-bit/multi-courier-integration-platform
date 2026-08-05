@@ -63,11 +63,16 @@ Prerequisites:
 
 - Node.js 22
 - npm 10 or later
+- Docker Desktop with Docker Compose
 
 Install dependencies:
 
 ```bash
 npm ci
+cp .env.example .env
+docker compose up -d
+npm run db:migrate:deploy
+npm run db:generate
 ```
 
 Run in development mode:
@@ -76,8 +81,8 @@ Run in development mode:
 npm run start:dev
 ```
 
-The database and Redis setup instructions will be added when those components
-are introduced.
+PostgreSQL listens on port `5432` and Redis on `6379` by default. Override the
+development ports and credentials in `.env` when necessary.
 
 ## Quality checks
 

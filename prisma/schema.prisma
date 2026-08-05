@@ -1,0 +1,157 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CourierPartner {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(50)
+  displayName String   @map("display_name") @db.VarChar(100)
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shipments   Shipment[]
+  apiAttempts CourierApiAttempt[]
+
+  @@map("courier_partners")
+}
+
+model Order {
+  id                String   @id @default(uuid()) @db.Uuid
+  orderId           String   @unique @map("order_id") @db.VarChar(100)
+  requestHash       String   @map("request_hash") @db.Char(64)
+  normalizedRequest Json     @map("normalized_request") @db.JsonB
+  status            String   @db.VarChar(40)
+  failureCode       String?  @map("failure_code") @db.VarChar(100)
+  failureMessage    String?  @map("failure_message")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shipments  Shipment[]
+  batchItems BatchItem[]
+
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model Shipment {
+  id                     String   @id @default(uuid()) @db.Uuid
+  orderId                String   @map("order_id") @db.Uuid
+  courierPartnerId       String   @map("courier_partner_id") @db.Uuid
+  shipmentSequence       Int      @map("shipment_sequence") @db.SmallInt
+  isActive               Boolean  @default(true) @map("is_active")
+  courierShipmentId      String?  @map("courier_shipment_id") @db.VarChar(150)
+  awbNumber              String?  @map("awb_number") @db.VarChar(150)
+  status                 String   @db.VarChar(40)
+  courierStatusCode      String?  @map("courier_status_code") @db.VarChar(50)
+  courierRequestPayload  Json?    @map("courier_request_payload") @db.JsonB
+  courierResponsePayload Json?    @map("courier_response_payload") @db.JsonB
+  failureCode            String?  @map("failure_code") @db.VarChar(100)
+  failureMessage         String?  @map("failure_message")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  order          Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  courierPartner CourierPartner      @relation(fields: [courierPartnerId], references: [id], onDelete: Restrict)
+  trackingEvents TrackingEvent[]
+  apiAttempts    CourierApiAttempt[]
+
+  @@unique([orderId, shipmentSequence])
+  @@unique([courierPartnerId, courierShipmentId])
+  @@unique([courierPartnerId, awbNumber])
+  @@index([orderId, isActive])
+  @@index([courierPartnerId, status])
+  @@index([updatedAt])
+  @@map("shipments")
+}
+
+model TrackingEvent {
+  id                       String    @id @default(uuid()) @db.Uuid
+  shipmentId               String    @map("shipment_id") @db.Uuid
+  normalizedStatus         String    @map("normalized_status") @db.VarChar(40)
+  courierStatusCode        String    @map("courier_status_code") @db.VarChar(50)
+  courierStatusDescription String?   @map("courier_status_description") @db.VarChar(255)
+  courierReasonCode        String?   @map("courier_reason_code") @db.VarChar(50)
+  courierReasonDescription String?   @map("courier_reason_description") @db.VarChar(255)
+  location                 String?   @db.VarChar(255)
+  courierEventTime         DateTime? @map("courier_event_time") @db.Timestamptz(3)
+  eventFingerprint         String    @map("event_fingerprint") @db.Char(64)
+  rawPayload               Json      @map("raw_payload") @db.JsonB
+  recordedAt               DateTime  @default(now()) @map("recorded_at") @db.Timestamptz(3)
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+
+  @@unique([shipmentId, eventFingerprint])
+  @@index([shipmentId, courierEventTime(sort: Desc)])
+  @@map("tracking_events")
+}
+
+model CourierApiAttempt {
+  id               String   @id @default(uuid()) @db.Uuid
+  shipmentId       String?  @map("shipment_id") @db.Uuid
+  courierPartnerId String   @map("courier_partner_id") @db.Uuid
+  operation        String   @db.VarChar(40)
+  attemptNumber    Int      @map("attempt_number") @db.SmallInt
+  requestId        String   @map("request_id") @db.VarChar(100)
+  requestPayload   Json?    @map("request_payload") @db.JsonB
+  responsePayload  Json?    @map("response_payload") @db.JsonB
+  httpStatus       Int?     @map("http_status") @db.SmallInt
+  businessStatus   String   @map("business_status") @db.VarChar(20)
+  errorCode        String?  @map("error_code") @db.VarChar(100)
+  errorMessage     String?  @map("error_message")
+  durationMs       Int?     @map("duration_ms")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  shipment       Shipment?      @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  courierPartner CourierPartner @relation(fields: [courierPartnerId], references: [id], onDelete: Restrict)
+
+  @@unique([courierPartnerId, operation, requestId, attemptNumber])
+  @@index([shipmentId, createdAt(sort: Desc)])
+  @@index([requestId])
+  @@map("courier_api_attempts")
+}
+
+model Batch {
+  id           String    @id @default(uuid()) @db.Uuid
+  status       String    @db.VarChar(40)
+  totalCount   Int       @map("total_count") @db.SmallInt
+  successCount Int       @default(0) @map("success_count") @db.SmallInt
+  failureCount Int       @default(0) @map("failure_count") @db.SmallInt
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(3)
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  items BatchItem[]
+
+  @@index([status, createdAt])
+  @@map("batches")
+}
+
+model BatchItem {
+  id                      String   @id @default(uuid()) @db.Uuid
+  batchId                 String   @map("batch_id") @db.Uuid
+  orderId                 String?  @map("order_id") @db.Uuid
+  submittedOrderId        String   @map("submitted_order_id") @db.VarChar(100)
+  submittedCourierPartner String   @map("submitted_courier_partner") @db.VarChar(50)
+  position                Int      @db.SmallInt
+  status                  String   @db.VarChar(20)
+  errorCode               String?  @map("error_code") @db.VarChar(100)
+  errorMessage            String?  @map("error_message")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  batch Batch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, position])
+  @@unique([batchId, submittedOrderId])
+  @@index([batchId, status])
+  @@map("batch_items")
+}

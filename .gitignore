@@ -31,3 +31,6 @@ Thumbs.db
 .testcontainers.properties
 tmp/
 temp/
+
+# Generated Prisma client
+/src/generated/prisma/
