@@ -4,6 +4,12 @@
 !.env.example
 *UrbaneBolt*postman_collection.json
 
+# Private assignment and internal design material
+/A Full Stack Developer Assignment.pdf
+/assignment.txt
+/DESIGN.md
+/deliverables/
+
 # Node.js / NestJS output
 node_modules/
 dist/
