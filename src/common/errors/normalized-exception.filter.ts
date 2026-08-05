@@ -57,6 +57,12 @@ export class NormalizedExceptionFilter implements ExceptionFilter {
       );
       return;
     }
+    if (exception instanceof HttpException && exception.getStatus() < 500) {
+      this.logger.warn(
+        `${context} error=${exception.name} status=${exception.getStatus()}`,
+      );
+      return;
+    }
     if (exception instanceof Error) {
       this.logger.error(`${context} error=${exception.name}`, exception.stack);
       return;
