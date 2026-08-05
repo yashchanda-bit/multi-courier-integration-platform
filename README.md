@@ -7,10 +7,10 @@ public API.
 
 ## Current status
 
-The NestJS foundation, PostgreSQL schema, normalized contracts, global error
-handling, courier registry, and MockCourier adapter are ready. Order persistence,
-the UrbaneBolt adapter, and background bulk processing are being implemented
-incrementally.
+The NestJS foundation, PostgreSQL persistence, normalized contracts, global
+error handling, idempotent order creation, MockCourier, and the UrbaneBolt
+adapter are ready. Tracking and cancellation routes and background bulk
+processing are being implemented incrementally.
 
 ## Planned API
 
@@ -95,6 +95,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run test:e2e
+npm run test:integration
 npm run build
 ```
 
@@ -121,6 +122,12 @@ business services, courier implementations, or the database schema.
 Configuration will come from environment variables. A future `.env.example`
 will document required values such as database URL, Redis URL, courier base URL,
 timeouts, retries, and credential names.
+
+To enable UrbaneBolt, provide its username, password, customer code, base URL,
+timeout, and retry settings from `.env.example`, then enable `urbanebolt` in the
+`courier_partners` table. Tokens are cached in memory, refreshed automatically
+after an authentication rejection, and never persisted or included in audit
+payloads.
 
 Never commit:
 

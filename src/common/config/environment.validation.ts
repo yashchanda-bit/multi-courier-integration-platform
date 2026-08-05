@@ -11,4 +11,21 @@ export const environmentValidationSchema = Joi.object({
   REDIS_URL: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
     .required(),
+  URBANEBOLT_BASE_URL: Joi.string()
+    .uri({ scheme: ['https', 'http'] })
+    .default('https://uat.urbanebolt.in'),
+  URBANEBOLT_USERNAME: Joi.string().allow('').default(''),
+  URBANEBOLT_PASSWORD: Joi.string().allow('').default(''),
+  URBANEBOLT_CUSTOMER_CODE: Joi.string().allow('').default(''),
+  URBANEBOLT_TIMEOUT_MS: Joi.number().integer().min(100).default(5000),
+  URBANEBOLT_RETRY_MAX_ATTEMPTS: Joi.number()
+    .integer()
+    .min(1)
+    .max(5)
+    .default(3),
+  URBANEBOLT_RETRY_BASE_DELAY_MS: Joi.number()
+    .integer()
+    .min(0)
+    .max(10_000)
+    .default(250),
 }).unknown(true);
