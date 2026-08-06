@@ -57,11 +57,18 @@ describe('UrbaneBoltAdapter', () => {
 
   it('maps a successful manifest response', async () => {
     request.mockResolvedValue({
-      status: 'Success',
-      successResponse: [
-        { status: 'Success', orderNumber: 'ORDER-1', awbNumber: 200000000001 },
-      ],
-      errorResponse: [],
+      httpStatus: 200,
+      body: {
+        status: 'Success',
+        successResponse: [
+          {
+            status: 'Success',
+            orderNumber: 'ORDER-1',
+            awbNumber: 200000000001,
+          },
+        ],
+        errorResponse: [],
+      },
     });
 
     await expect(adapter.createShipment(order)).resolves.toMatchObject({
@@ -78,29 +85,41 @@ describe('UrbaneBoltAdapter', () => {
   });
 
   it('rejects an HTTP-200 manifest business failure', async () => {
+    const rawResponse = { status: 'Failed', message: 'Payload rejected' };
     request.mockResolvedValue({
-      status: 'Failed',
-      message: 'Payload rejected',
+      httpStatus: 200,
+      body: rawResponse,
     });
 
-    await expect(adapter.createShipment(order)).rejects.toBeInstanceOf(
-      UrbaneBoltBusinessError,
-    );
+    let failure: unknown;
+    try {
+      await adapter.createShipment(order);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(UrbaneBoltBusinessError);
+    const businessError = failure as UrbaneBoltBusinessError;
+    expect(businessError.courierResponsePayload).toEqual(rawResponse);
+    expect(businessError.courierHttpStatus).toBe(200);
+    expect(Array.isArray(businessError.courierRequestPayload)).toBe(true);
   });
 
   it('normalizes tracking and scan history', async () => {
     request.mockResolvedValue({
-      status: 'Success',
-      data: {
-        currentStatusCode: 'CAN',
-        scans: [
-          {
-            statusCode: 'CAN',
-            statusCodeDescription: 'Cancelled',
-            statusDateTime: '2026-08-06T10:00:00Z',
-          },
-          { statusCode: 'MAN', statusCodeDescription: 'Manifested' },
-        ],
+      httpStatus: 200,
+      body: {
+        status: 'Success',
+        data: {
+          currentStatusCode: 'CAN',
+          scans: [
+            {
+              statusCode: 'CAN',
+              statusCodeDescription: 'Cancelled',
+              statusDateTime: '2026-08-06T10:00:00Z',
+            },
+            { statusCode: 'MAN', statusCodeDescription: 'Manifested' },
+          ],
+        },
       },
     });
 
@@ -118,9 +137,12 @@ describe('UrbaneBoltAdapter', () => {
 
   it('detects an item-level cancellation failure', async () => {
     request.mockResolvedValue({
-      status: 'Success',
-      successResponse: [],
-      failureResponse: [{ awb: '200000000001', message: 'Not allowed' }],
+      httpStatus: 200,
+      body: {
+        status: 'Success',
+        successResponse: [],
+        failureResponse: [{ awb: '200000000001', message: 'Not allowed' }],
+      },
     });
 
     await expect(

@@ -1,6 +1,5 @@
 import { UrbaneBoltAuthService } from './urbanebolt-auth.service';
 import type { UrbaneBoltConfig } from './urbanebolt.config';
-import { UrbaneBoltRequestError } from './urbanebolt.errors';
 import { UrbaneBoltHttpClient } from './urbanebolt-http.client';
 
 const config: UrbaneBoltConfig = {
@@ -38,7 +37,7 @@ describe('UrbaneBoltHttpClient', () => {
 
     await expect(
       client.request('track shipment', '/tracking', { method: 'GET' }),
-    ).resolves.toEqual({ status: 'Success' });
+    ).resolves.toEqual({ body: { status: 'Success' }, httpStatus: 200 });
     expect(invalidate).toHaveBeenCalledTimes(1);
     expect(httpFetch).toHaveBeenCalledTimes(2);
     const calls = httpFetch.mock.calls as unknown[][];
@@ -57,8 +56,19 @@ describe('UrbaneBoltHttpClient', () => {
     const client = new UrbaneBoltHttpClient(config, httpFetch, authentication);
 
     await expect(
-      client.request('create shipment', '/manifest', { method: 'POST' }),
-    ).rejects.toBeInstanceOf(UrbaneBoltRequestError);
+      client.request('create shipment', '/manifest', {
+        method: 'POST',
+        body: JSON.stringify({ orderNumber: 'ORDER-1' }),
+      }),
+    ).rejects.toMatchObject({
+      courierHttpStatus: 503,
+      courierResponsePayload: {},
+      courierRequestPayload: {
+        method: 'POST',
+        path: '/manifest',
+        body: { orderNumber: 'ORDER-1' },
+      },
+    });
     expect(httpFetch).toHaveBeenCalledTimes(3);
   });
 
@@ -72,7 +82,10 @@ describe('UrbaneBoltHttpClient', () => {
 
     await expect(
       client.request('create shipment', '/manifest', { method: 'POST' }),
-    ).rejects.toBeInstanceOf(UrbaneBoltRequestError);
+    ).rejects.toMatchObject({
+      courierHttpStatus: 400,
+      courierResponsePayload: {},
+    });
     expect(httpFetch).toHaveBeenCalledTimes(1);
   });
 });

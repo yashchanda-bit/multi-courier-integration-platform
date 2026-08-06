@@ -152,6 +152,16 @@ export class PrismaOrderRepository implements OrderRepository {
           status: 'FAILED',
           failureCode: input.errorCode,
           failureMessage: input.errorMessage,
+          ...(input.courierRequestPayload === undefined
+            ? {}
+            : {
+                courierRequestPayload: toJson(input.courierRequestPayload),
+              }),
+          ...(input.courierResponsePayload === undefined
+            ? {}
+            : {
+                courierResponsePayload: toJson(input.courierResponsePayload),
+              }),
         },
       }),
       this.prisma.order.update({
@@ -169,6 +179,13 @@ export class PrismaOrderRepository implements OrderRepository {
           operation: 'CREATE_SHIPMENT',
           attemptNumber: 1,
           requestId: input.requestId,
+          ...(input.courierRequestPayload === undefined
+            ? {}
+            : { requestPayload: toJson(input.courierRequestPayload) }),
+          ...(input.courierResponsePayload === undefined
+            ? {}
+            : { responsePayload: toJson(input.courierResponsePayload) }),
+          httpStatus: input.courierHttpStatus,
           businessStatus: 'FAILED',
           errorCode: input.errorCode,
           errorMessage: input.errorMessage,
@@ -268,6 +285,10 @@ export class PrismaOrderRepository implements OrderRepository {
         attemptNumber: 1,
         requestId: input.requestId,
         requestPayload: toJson(input.requestPayload),
+        ...(input.responsePayload === undefined
+          ? {}
+          : { responsePayload: toJson(input.responsePayload) }),
+        httpStatus: input.courierHttpStatus,
         businessStatus: 'FAILED',
         errorCode: input.errorCode,
         errorMessage: input.errorMessage,

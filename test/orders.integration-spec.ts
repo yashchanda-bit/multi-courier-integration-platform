@@ -5,6 +5,11 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApplication } from '../src/bootstrap/configure-application';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
+import {
+  ORDER_REPOSITORY,
+  type OrderRepository,
+} from '../src/modules/orders/domain/order.repository';
+import { normalizedOrderFixture } from './fixtures/normalized-order.fixture';
 
 const orderRequest = {
   order_id: 'INTEGRATION-ORDER-1001',
@@ -42,6 +47,7 @@ const orderRequest = {
 describe('order lifecycle APIs (database integration)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let orders: OrderRepository;
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -51,6 +57,7 @@ describe('order lifecycle APIs (database integration)', () => {
     configureApplication(app);
     await app.init();
     prisma = app.get(PrismaService);
+    orders = app.get<OrderRepository>(ORDER_REPOSITORY);
     await prisma.courierPartner.upsert({
       where: { code: 'mock' },
       update: { isEnabled: true },
@@ -125,6 +132,51 @@ describe('order lifecycle APIs (database integration)', () => {
         },
       }),
     ).toBe(1);
+  });
+
+  it('persists raw request, response, and HTTP status for a failed courier attempt', async () => {
+    const order = normalizedOrderFixture({
+      orderId: 'INTEGRATION-FAILED-AUDIT-1005',
+    });
+    const partner = await prisma.courierPartner.findUniqueOrThrow({
+      where: { code: 'mock' },
+    });
+    const reservation = await orders.reserve({
+      order,
+      requestHash: 'a'.repeat(64),
+      courierPartnerId: partner.id,
+    });
+    const courierRequest = [{ orderNumber: order.orderId }];
+    const courierResponse = {
+      status: 'Failed',
+      errorResponse: [{ message: 'Internal courier-only reason' }],
+    };
+
+    await orders.failShipment({
+      orderDatabaseId: reservation.order.id,
+      shipmentDatabaseId: reservation.order.activeShipment.id,
+      courierPartnerId: partner.id,
+      requestId: 'integration-failed-audit',
+      errorCode: 'COURIER_REJECTED_REQUEST',
+      errorMessage: 'The courier rejected the create shipment operation',
+      courierRequestPayload: courierRequest,
+      courierResponsePayload: courierResponse,
+      courierHttpStatus: 200,
+      durationMs: 10,
+    });
+
+    const shipment = await prisma.shipment.findUniqueOrThrow({
+      where: { id: reservation.order.activeShipment.id },
+      include: { apiAttempts: true },
+    });
+    expect(shipment.courierRequestPayload).toEqual(courierRequest);
+    expect(shipment.courierResponsePayload).toEqual(courierResponse);
+    expect(shipment.apiAttempts[0]).toMatchObject({
+      requestPayload: courierRequest,
+      responsePayload: courierResponse,
+      httpStatus: 200,
+      businessStatus: 'FAILED',
+    });
   });
 
   it('rejects the same order ID with a different request hash', async () => {

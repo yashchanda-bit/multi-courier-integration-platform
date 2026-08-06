@@ -58,17 +58,22 @@ export class UrbaneBoltAdapter implements CourierAdapter {
       throw new UrbaneBoltConfigurationError();
     }
     const rawRequest = mapManifestRequest(order, this.config);
-    const rawResponse = await this.client.request<ManifestResponse>(
+    const response = await this.client.request<ManifestResponse>(
       'create shipment',
       '/api/v1/services/manifest/',
       { method: 'POST', body: JSON.stringify(rawRequest) },
     );
+    const rawResponse = response.body;
     const success = rawResponse.successResponse?.find(
       (item) => stringValue(item.orderNumber) === order.orderId,
     );
     const awbNumber = stringValue(success?.awbNumber);
     if (rawResponse.status !== 'Success' || !success || !awbNumber) {
-      throw new UrbaneBoltBusinessError('create shipment');
+      throw new UrbaneBoltBusinessError('create shipment', {
+        courierRequestPayload: rawRequest,
+        courierResponsePayload: rawResponse,
+        courierHttpStatus: response.httpStatus,
+      });
     }
     return {
       courierShipmentId: awbNumber,
@@ -81,14 +86,19 @@ export class UrbaneBoltAdapter implements CourierAdapter {
   }
 
   async trackShipment(reference: ShipmentReference): Promise<TrackingResult> {
-    const rawResponse = await this.client.request<TrackingResponse>(
+    const response = await this.client.request<TrackingResponse>(
       'track shipment',
       `/api/v1/services/tracking-pub/?awb=${encodeURIComponent(reference.awbNumber)}`,
       { method: 'GET' },
     );
+    const rawResponse = response.body;
     const currentCode = stringValue(rawResponse.data?.currentStatusCode);
     if (rawResponse.status !== 'Success' || !rawResponse.data || !currentCode) {
-      throw new UrbaneBoltBusinessError('track shipment');
+      throw new UrbaneBoltBusinessError('track shipment', {
+        courierRequestPayload: reference,
+        courierResponsePayload: rawResponse,
+        courierHttpStatus: response.httpStatus,
+      });
     }
     const scans = Array.isArray(rawResponse.data.scans)
       ? rawResponse.data.scans.filter(isRecord).map(mapTrackingEvent)
@@ -105,16 +115,21 @@ export class UrbaneBoltAdapter implements CourierAdapter {
     reference: ShipmentReference,
   ): Promise<CancellationResult> {
     const rawRequest = { awbs: reference.awbNumber };
-    const rawResponse = await this.client.request<CancellationResponse>(
+    const response = await this.client.request<CancellationResponse>(
       'cancel shipment',
       '/api/v1/services/cancel/',
       { method: 'POST', body: JSON.stringify(rawRequest) },
     );
+    const rawResponse = response.body;
     const success = rawResponse.successResponse?.find(
       (item) => stringValue(item.awb) === reference.awbNumber,
     );
     if (rawResponse.status !== 'Success' || !success) {
-      throw new UrbaneBoltBusinessError('cancel shipment');
+      throw new UrbaneBoltBusinessError('cancel shipment', {
+        courierRequestPayload: rawRequest,
+        courierResponsePayload: rawResponse,
+        courierHttpStatus: response.httpStatus,
+      });
     }
     return {
       status: 'CANCELLED',

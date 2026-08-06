@@ -20,7 +20,7 @@ export class UrbaneBoltHttpClient {
     operation: string,
     path: string,
     init: RequestInit,
-  ): Promise<T> {
+  ): Promise<{ body: T; httpStatus: number }> {
     let authRetried = false;
     let lastError: unknown;
 
@@ -47,12 +47,19 @@ export class UrbaneBoltHttpClient {
           await this.backoff(attempt);
           continue;
         }
+        const responseBody = await this.readResponseBody(response);
         if (!response.ok) {
-          throw new UrbaneBoltRequestError(operation, {
-            cause: new Error(`UrbaneBolt returned HTTP ${response.status}`),
-          });
+          throw new UrbaneBoltRequestError(
+            operation,
+            {
+              courierRequestPayload: this.requestPayload(path, init),
+              courierResponsePayload: responseBody,
+              courierHttpStatus: response.status,
+            },
+            { cause: new Error(`UrbaneBolt returned HTTP ${response.status}`) },
+          );
         }
-        return (await response.json()) as T;
+        return { body: responseBody as T, httpStatus: response.status };
       } catch (error) {
         if (error instanceof UrbaneBoltRequestError) {
           throw error;
@@ -64,7 +71,31 @@ export class UrbaneBoltHttpClient {
         }
       }
     }
-    throw new UrbaneBoltRequestError(operation, { cause: lastError });
+    throw new UrbaneBoltRequestError(
+      operation,
+      { courierRequestPayload: this.requestPayload(path, init) },
+      { cause: lastError },
+    );
+  }
+
+  private async readResponseBody(response: Response): Promise<unknown> {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  private requestPayload(path: string, init: RequestInit): unknown {
+    let body: unknown;
+    if (typeof init.body === 'string') {
+      try {
+        body = JSON.parse(init.body) as unknown;
+      } catch {
+        body = init.body;
+      }
+    }
+    return { method: init.method ?? 'GET', path, body };
   }
 
   private backoff(attempt: number): Promise<void> {

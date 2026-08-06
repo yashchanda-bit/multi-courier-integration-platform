@@ -7,6 +7,7 @@ import { COURIER_PARTNER_REPOSITORY } from '../../couriers/domain/courier-partne
 import type { CourierPartnerRepository } from '../../couriers/domain/courier-partner.repository';
 import { CourierDisabledError } from '../../couriers/domain/errors/courier-disabled.error';
 import { CourierOperationFailedError } from '../../couriers/domain/errors/courier-operation-failed.error';
+import { getCourierFailureAudit } from '../../couriers/domain/courier-failure-audit';
 import type { NormalizedOrder } from '../domain/order';
 import { ORDER_REPOSITORY } from '../domain/order.repository';
 import type {
@@ -74,6 +75,7 @@ export class CreateOrderService {
     try {
       result = await adapter.createShipment(order);
     } catch (error) {
+      const audit = getCourierFailureAudit(error);
       const normalized =
         error instanceof ApplicationError
           ? error
@@ -89,6 +91,9 @@ export class CreateOrderService {
         requestId,
         errorCode: normalized.code,
         errorMessage: normalized.message,
+        courierRequestPayload: audit.courierRequestPayload,
+        courierResponsePayload: audit.courierResponsePayload,
+        courierHttpStatus: audit.courierHttpStatus,
         durationMs: Math.round(performance.now() - startedAt),
       });
       throw normalized;

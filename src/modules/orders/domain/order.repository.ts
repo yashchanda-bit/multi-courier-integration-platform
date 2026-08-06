@@ -52,6 +52,9 @@ export interface FailShipmentInput {
   requestId: string;
   errorCode: string;
   errorMessage: string;
+  courierRequestPayload?: unknown;
+  courierResponsePayload?: unknown;
+  courierHttpStatus?: number;
   durationMs: number;
 }
 
@@ -85,6 +88,8 @@ export interface RecordOperationFailureInput {
   courierPartnerId: string;
   operation: 'TRACK_SHIPMENT' | 'CANCEL_SHIPMENT';
   requestPayload: unknown;
+  responsePayload?: unknown;
+  courierHttpStatus?: number;
   requestId: string;
   errorCode: string;
   errorMessage: string;

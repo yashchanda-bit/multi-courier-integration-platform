@@ -1,6 +1,7 @@
 import { ApplicationError } from '../../../common/errors/application-error';
 import { CourierRegistry } from '../../couriers/application/courier-registry';
 import { CourierAdapter } from '../../couriers/domain/courier-adapter';
+import { UrbaneBoltBusinessError } from '../../couriers/urbanebolt/urbanebolt.errors';
 import { CourierPartnerRepository } from '../../couriers/domain/courier-partner.repository';
 import { MockCourierAdapter } from '../../couriers/mock/mock-courier.adapter';
 import { normalizedOrderFixture } from '../../../../test/fixtures/normalized-order.fixture';
@@ -168,6 +169,51 @@ describe(CreateOrderService.name, () => {
       expect.objectContaining({
         errorCode: 'COURIER_OPERATION_FAILED',
         errorMessage: 'The courier could not create the shipment',
+      }),
+    );
+  });
+
+  it('persists courier audit context without exposing it to the client', async () => {
+    const courierResponse = {
+      status: 'Failed',
+      errorResponse: [{ message: 'Private courier reason' }],
+    };
+    const failingAdapter: CourierAdapter = {
+      code: 'mock',
+      createShipment: jest.fn().mockRejectedValue(
+        new UrbaneBoltBusinessError('create shipment', {
+          courierRequestPayload: [{ orderNumber: 'ORDER-1001' }],
+          courierResponsePayload: courierResponse,
+          courierHttpStatus: 200,
+        }),
+      ),
+      trackShipment: jest.fn(),
+      cancelShipment: jest.fn(),
+    };
+    service = new CreateOrderService(
+      orders,
+      courierPartners,
+      new CourierRegistry([failingAdapter]),
+    );
+    orders.findByOrderId.mockResolvedValue(null);
+    courierPartners.findByCode.mockResolvedValue({
+      id: 'courier-db-id',
+      code: 'mock',
+      isEnabled: true,
+    });
+    orders.reserve.mockResolvedValue({ order: pendingOrder(), created: true });
+
+    await expect(
+      service.execute(normalizedOrderFixture(), 'request-audited-failure'),
+    ).rejects.toMatchObject({
+      code: 'COURIER_REJECTED_REQUEST',
+      message: 'The courier rejected the create shipment operation',
+    });
+    expect(orders.failShipment.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        courierRequestPayload: [{ orderNumber: 'ORDER-1001' }],
+        courierResponsePayload: courierResponse,
+        courierHttpStatus: 200,
       }),
     );
   });

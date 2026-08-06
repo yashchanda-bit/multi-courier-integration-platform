@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { ApplicationError } from '../../../common/errors/application-error';
+import { getCourierFailureAudit } from '../../couriers/domain/courier-failure-audit';
 import { CourierRegistry } from '../../couriers/application/courier-registry';
 import { COURIER_PARTNER_REPOSITORY } from '../../couriers/domain/courier-partner.repository';
 import type { CourierPartnerRepository } from '../../couriers/domain/courier-partner.repository';
@@ -61,6 +62,7 @@ export class CancelOrderService {
         courierShipmentId: shipment.courierShipmentId ?? undefined,
       });
     } catch (error) {
+      const audit = getCourierFailureAudit(error);
       const normalized =
         error instanceof ApplicationError
           ? error
@@ -73,7 +75,9 @@ export class CancelOrderService {
         shipmentDatabaseId: shipment.id,
         courierPartnerId: shipment.courierPartnerId,
         operation: 'CANCEL_SHIPMENT',
-        requestPayload,
+        requestPayload: audit.courierRequestPayload ?? requestPayload,
+        responsePayload: audit.courierResponsePayload,
+        courierHttpStatus: audit.courierHttpStatus,
         requestId,
         errorCode: normalized.code,
         errorMessage: normalized.message,
