@@ -89,7 +89,7 @@
               },
               {
                 "key": "X-Request-Id",
-                "value": "postman-create-1001"
+                "value": "{{$guid}}"
               }
             ],
             "body": {
@@ -124,7 +124,7 @@
             "header": [
               {
                 "key": "X-Request-Id",
-                "value": "postman-track-1001"
+                "value": "{{$guid}}"
               }
             ],
             "url": "{{base_url}}/orders/{{order_id}}/track",
@@ -150,7 +150,7 @@
             "header": [
               {
                 "key": "X-Request-Id",
-                "value": "postman-cancel-1001"
+                "value": "{{$guid}}"
               }
             ],
             "url": "{{base_url}}/orders/{{order_id}}/cancel",
@@ -185,7 +185,7 @@
               },
               {
                 "key": "X-Request-Id",
-                "value": "postman-bulk-2001"
+                "value": "{{$guid}}"
               }
             ],
             "body": {
@@ -222,7 +222,7 @@
             "header": [
               {
                 "key": "X-Request-Id",
-                "value": "postman-batch-status-2001"
+                "value": "{{$guid}}"
               }
             ],
             "url": "{{base_url}}/batches/{{batch_id}}",

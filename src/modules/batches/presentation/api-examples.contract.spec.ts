@@ -16,6 +16,7 @@ interface PostmanItem {
   request?: {
     url: string;
     body?: { raw?: string };
+    header?: Array<{ key: string; value: string }>;
   };
 }
 
@@ -96,5 +97,19 @@ describe('documented API request examples', () => {
 
     await expect(validate(createRequest)).resolves.toEqual([]);
     await expect(validate(bulkRequest)).resolves.toEqual([]);
+  });
+
+  it('generates a fresh correlation ID for every Postman request', () => {
+    const requestIdHeaders = postmanItems.flatMap(
+      (item) =>
+        item.request?.header?.filter(
+          (header) => header.key.toLowerCase() === 'x-request-id',
+        ) ?? [],
+    );
+
+    expect(requestIdHeaders.length).toBeGreaterThan(0);
+    expect(
+      requestIdHeaders.every((header) => header.value === '{{$guid}}'),
+    ).toBe(true);
   });
 });
