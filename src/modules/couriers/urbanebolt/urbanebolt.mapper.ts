@@ -22,7 +22,7 @@ export interface UrbaneBoltManifestRequest {
   rtnName: string;
   rtnEmail?: string;
   rtnState: string;
-  rtnMobile: string;
+  rtnMobile: number;
   rtnAddress: string;
   rtnAddressType: string;
   rtnCountry: string;
@@ -31,7 +31,7 @@ export interface UrbaneBoltManifestRequest {
   shprName: string;
   shprEmail?: string;
   shprState: string;
-  shprMobile: string;
+  shprMobile: number;
   shprAddress: string;
   shprAddressType: string;
   shprCountry: string;
@@ -40,7 +40,7 @@ export interface UrbaneBoltManifestRequest {
   consName: string;
   consEmail?: string;
   consState: string;
-  consMobile: string;
+  consMobile: number;
   consAddress: string;
   consAddressType: string;
   consCountry: string;
@@ -75,7 +75,7 @@ export const mapManifestRequest = (
       rtnName: returnAddress.name,
       rtnEmail: returnAddress.email,
       rtnState: returnAddress.state,
-      rtnMobile: returnAddress.phone,
+      rtnMobile: toUrbaneBoltMobile(returnAddress.phone),
       rtnAddress: joinAddress(
         returnAddress.addressLine1,
         returnAddress.addressLine2,
@@ -87,7 +87,7 @@ export const mapManifestRequest = (
       shprName: order.shipper.name,
       shprEmail: order.shipper.email,
       shprState: order.shipper.state,
-      shprMobile: order.shipper.phone,
+      shprMobile: toUrbaneBoltMobile(order.shipper.phone),
       shprAddress: joinAddress(
         order.shipper.addressLine1,
         order.shipper.addressLine2,
@@ -99,7 +99,7 @@ export const mapManifestRequest = (
       consName: order.consignee.name,
       consEmail: order.consignee.email,
       consState: order.consignee.state,
-      consMobile: order.consignee.phone,
+      consMobile: toUrbaneBoltMobile(order.consignee.phone),
       consAddress: joinAddress(
         order.consignee.addressLine1,
         order.consignee.addressLine2,
@@ -161,3 +161,10 @@ const optionalString = (value: unknown): string | undefined => {
 
 const joinAddress = (line1: string, line2?: string): string =>
   [line1, line2].filter(Boolean).join(', ');
+
+const toUrbaneBoltMobile = (phone: string): number => {
+  const digits = phone.replace(/\D/g, '');
+  const nationalNumber =
+    digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+  return Number(nationalNumber);
+};

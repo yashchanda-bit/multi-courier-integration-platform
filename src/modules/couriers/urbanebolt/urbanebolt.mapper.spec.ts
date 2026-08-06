@@ -61,9 +61,25 @@ describe('UrbaneBolt mapping', () => {
       consPincode: '122001',
       shprPincode: '122017',
       rtnPincode: '122017',
+      consMobile: 9000000001,
+      shprMobile: 9000000002,
+      rtnMobile: 9000000002,
       itemDescription: 'Book, Pen',
       itemQuantity: 3,
     });
+  });
+
+  it.each([
+    ['+919000000001', 9000000001],
+    ['919000000001', 9000000001],
+    ['90000 00001', 9000000001],
+  ])('maps unified phone %s to UrbaneBolt mobile %d', (phone, expected) => {
+    const request = mapManifestRequest(
+      { ...order, consignee: { ...order.consignee, phone } },
+      config,
+    );
+
+    expect(request[0]?.consMobile).toBe(expected);
   });
 
   it.each([
