@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8b599b76-18ea-4e63-a66f-b27fdce7337a",
     "name": "Multi-Courier Integration Platform",
-    "description": "Credential-free requests for the local API using MockCourier. Run the folders in order: Health, Orders, then Bulk Orders. The bulk request automatically saves batch_id for the status request.",
+    "description": "Credential-free requests for the local API using MockCourier. Run the folders in order: Health, Orders, Courier Capabilities, then Bulk Orders. The bulk request automatically saves batch_id for the status request.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -168,6 +168,73 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Courier Capabilities",
+      "item": [
+        {
+          "name": "Check Serviceability",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Request-Id", "value": "{{$guid}}" }],
+            "url": "{{base_url}}/couriers/serviceability?courier_partner=mock&pincodes=122001,122017",
+            "description": "Checks selected pincodes. Omit pincodes to export all serviceable locations."
+          }
+        },
+        {
+          "name": "Get Shipping Label",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Request-Id", "value": "{{$guid}}" }],
+            "url": "{{base_url}}/orders/{{order_id}}/label",
+            "description": "Gets normalized label data for the stored shipment. Run Create Order first."
+          }
+        },
+        {
+          "name": "Get Electronic Proof of Delivery",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Request-Id", "value": "{{$guid}}" }],
+            "url": "{{base_url}}/orders/{{order_id}}/epod",
+            "description": "Gets ePOD data when the courier has made it available."
+          }
+        },
+        {
+          "name": "Request NDR Reattempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Request-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Customer\",\n  \"address\": \"42 Updated Street\",\n  \"city\": \"Gurugram\",\n  \"state\": \"Haryana\",\n  \"postal_code\": \"122001\",\n  \"phone\": \"+919999999999\",\n  \"email\": \"customer@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{base_url}}/orders/{{order_id}}/ndr/reattempt",
+            "description": "Requests another delivery attempt using a normalized address."
+          }
+        },
+        {
+          "name": "Change Payment Mode",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Request-Id", "value": "{{$guid}}" }],
+            "url": "{{base_url}}/orders/{{order_id}}/payment-mode/change",
+            "description": "Requests the courier-supported payment-mode transition."
+          }
+        },
+        {
+          "name": "Request Return to Origin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Request-Id", "value": "{{$guid}}" }],
+            "url": "{{base_url}}/orders/{{order_id}}/ndr/rto",
+            "description": "Locks the shipment for return to origin. Run this after the other lifecycle examples."
+          }
         }
       ]
     },

@@ -134,6 +134,64 @@ describe('order lifecycle APIs (database integration)', () => {
     ).toBe(1);
   });
 
+  it('exposes courier-neutral optional capability APIs', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/couriers/serviceability')
+      .query({ courier_partner: 'mock', pincodes: '122001,122017' })
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          courier_partner: string;
+          unsupported_postal_codes: string[];
+          locations: unknown[];
+        };
+        expect(body).toMatchObject({
+          courier_partner: 'mock',
+          unsupported_postal_codes: [],
+        });
+        expect(body.locations).toHaveLength(2);
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .set('x-request-id', 'integration-capability-create')
+      .send(orderRequest)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/orders/${orderRequest.order_id}/label`)
+      .expect(200)
+      .expect((response) =>
+        expect((response.body as { available: boolean }).available).toBe(true),
+      );
+    await request(app.getHttpServer())
+      .get(`/api/v1/orders/${orderRequest.order_id}/epod`)
+      .expect(200)
+      .expect((response) =>
+        expect((response.body as { available: boolean }).available).toBe(false),
+      );
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${orderRequest.order_id}/ndr/reattempt`)
+      .send({
+        name: 'Updated Customer',
+        address: 'Updated address',
+        city: 'Delhi',
+        state: 'Delhi',
+        postal_code: '110001',
+        phone: '+919000000001',
+      })
+      .expect(200)
+      .expect({ accepted: true, message: 'Delivery reattempt accepted' });
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${orderRequest.order_id}/payment-mode/change`)
+      .expect(200)
+      .expect({ accepted: true, message: 'Payment mode change accepted' });
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${orderRequest.order_id}/ndr/rto`)
+      .expect(200)
+      .expect({ accepted: true, message: 'Return to origin accepted' });
+  });
+
   it('atomically fails an order and shipment after the processing lease expires', async () => {
     const order = normalizedOrderFixture({
       orderId: 'INTEGRATION-STALE-ORDER-1001',

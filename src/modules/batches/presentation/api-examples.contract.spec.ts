@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CreateOrderRequestDto } from '../../orders/presentation/dto/create-order.request';
 import { CreateBatchRequestDto } from './dto/create-batch.request';
+import { ReattemptDeliveryRequestDto } from '../../orders/presentation/dto/courier-capabilities.request';
 
 const readExample = (name: string): unknown =>
   JSON.parse(
@@ -79,6 +80,12 @@ describe('documented API request examples', () => {
         '{{base_url}}/orders',
         '{{base_url}}/orders/{{order_id}}/track',
         '{{base_url}}/orders/{{order_id}}/cancel',
+        '{{base_url}}/couriers/serviceability?courier_partner=mock&pincodes=122001,122017',
+        '{{base_url}}/orders/{{order_id}}/label',
+        '{{base_url}}/orders/{{order_id}}/epod',
+        '{{base_url}}/orders/{{order_id}}/ndr/reattempt',
+        '{{base_url}}/orders/{{order_id}}/payment-mode/change',
+        '{{base_url}}/orders/{{order_id}}/ndr/rto',
         '{{base_url}}/orders/bulk',
         '{{base_url}}/batches/{{batch_id}}',
       ]),
@@ -97,6 +104,11 @@ describe('documented API request examples', () => {
 
     await expect(validate(createRequest)).resolves.toEqual([]);
     await expect(validate(bulkRequest)).resolves.toEqual([]);
+    const reattemptRequest = plainToInstance(
+      ReattemptDeliveryRequestDto,
+      postmanBody('Request NDR Reattempt', 'unused'),
+    );
+    await expect(validate(reattemptRequest)).resolves.toEqual([]);
   });
 
   it('generates a fresh correlation ID for every Postman request', () => {

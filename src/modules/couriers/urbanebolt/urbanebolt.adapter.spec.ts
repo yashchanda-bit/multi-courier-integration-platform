@@ -152,4 +152,117 @@ describe('UrbaneBoltAdapter', () => {
       }),
     ).rejects.toBeInstanceOf(UrbaneBoltBusinessError);
   });
+
+  it('normalizes serviceability and service levels', async () => {
+    request.mockResolvedValue({
+      httpStatus: 200,
+      body: {
+        status: 'Success',
+        data: [
+          {
+            pincode: 122001,
+            inbound: true,
+            outbound: true,
+            rtn: true,
+            isActive: true,
+            city: 'Gurugram',
+            serviceType: 'SDD,NDD',
+          },
+        ],
+        errorPincodes: [999999],
+      },
+    });
+
+    await expect(adapter.checkServiceability(['122001'])).resolves.toEqual({
+      locations: [
+        expect.objectContaining({
+          postalCode: '122001',
+          serviceLevels: ['SDD', 'NDD'],
+        }),
+      ],
+      unsupportedPostalCodes: ['999999'],
+    });
+  });
+
+  it('normalizes label and unavailable ePOD responses', async () => {
+    request
+      .mockResolvedValueOnce({
+        httpStatus: 200,
+        body: {
+          status: 'Success',
+          data: [{ awb: '200000000001' }],
+          errData: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        httpStatus: 200,
+        body: {
+          status: 'Success',
+          successResponse: [],
+          failedResponse: [{ message: 'Requested AWB not found!' }],
+        },
+      });
+    const reference = { orderId: 'ORDER-1', awbNumber: '200000000001' };
+
+    await expect(adapter.getLabel(reference)).resolves.toMatchObject({
+      available: true,
+      errors: [],
+    });
+    await expect(adapter.getProofOfDelivery(reference)).resolves.toEqual({
+      available: false,
+      documents: [],
+      errors: ['Document is not available'],
+    });
+  });
+
+  it('uses the documented NDR and payment action contracts', async () => {
+    request.mockResolvedValue({
+      httpStatus: 200,
+      body: {
+        status: 'Success',
+        successResponse: [
+          { awb: '200000000001', message: 'Operation accepted' },
+        ],
+        failedResponse: [],
+      },
+    });
+    const reference = { orderId: 'ORDER-1', awbNumber: '200000000001' };
+
+    await expect(
+      adapter.requestReturnToOrigin(reference),
+    ).resolves.toMatchObject({
+      accepted: true,
+    });
+    await expect(adapter.changePaymentMode(reference)).resolves.toMatchObject({
+      accepted: true,
+    });
+    await expect(
+      adapter.reattemptDelivery(reference, {
+        name: 'Buyer',
+        address: 'New address',
+        city: 'Delhi',
+        state: 'Delhi',
+        postalCode: '110001',
+        phone: '+919000000001',
+      }),
+    ).resolves.toMatchObject({ accepted: true });
+    expect(request).toHaveBeenNthCalledWith(
+      1,
+      'request return to origin',
+      '/api/v1/services/ndr/?type=rtoLock',
+      expect.any(Object),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      'change payment mode',
+      '/api/v1/services/update-paymode/',
+      expect.any(Object),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      3,
+      'reattempt delivery',
+      '/api/v1/services/ndr/?type=reAttempt',
+      expect.any(Object),
+    );
+  });
 });

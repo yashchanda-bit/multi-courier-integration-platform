@@ -9,6 +9,12 @@ import {
   TrackingResult,
 } from '../../orders/domain/shipment';
 import { CourierAdapter } from '../domain/courier-adapter';
+import type {
+  CourierActionResult,
+  CourierDocumentResult,
+  ReattemptDeliveryInput,
+  ServiceabilityResult,
+} from '../domain/courier-capabilities';
 import { CourierShipmentNotFoundError } from '../domain/errors/courier-shipment-not-found.error';
 
 interface MockShipment {
@@ -98,6 +104,76 @@ export class MockCourierAdapter implements CourierAdapter {
     });
   }
 
+  checkServiceability(postalCodes?: string[]): Promise<ServiceabilityResult> {
+    const requested = postalCodes ?? ['110001', '122001', '122017'];
+    return Promise.resolve({
+      locations: requested.map((postalCode) => ({
+        postalCode,
+        inbound: true,
+        outbound: true,
+        returns: true,
+        active: true,
+        city: 'Mock City',
+        state: 'Mock State',
+        serviceCenter: 'Mock Distribution Centre',
+        serviceLevels: ['SDD', 'NDD'],
+      })),
+      unsupportedPostalCodes: [],
+    });
+  }
+
+  getLabel(reference: ShipmentReference): Promise<CourierDocumentResult> {
+    const shipment = this.findShipment(reference.awbNumber);
+    return Promise.resolve({
+      available: true,
+      documents: [{ awb_number: shipment.awbNumber, format: 'MOCK_LABEL' }],
+      errors: [],
+    });
+  }
+
+  getProofOfDelivery(
+    reference: ShipmentReference,
+  ): Promise<CourierDocumentResult> {
+    const shipment = this.findShipment(reference.awbNumber);
+    return Promise.resolve({
+      available: shipment.status === 'DELIVERED',
+      documents:
+        shipment.status === 'DELIVERED'
+          ? [{ awb_number: shipment.awbNumber, format: 'MOCK_EPOD' }]
+          : [],
+      errors:
+        shipment.status === 'DELIVERED'
+          ? []
+          : ['Proof of delivery is not available'],
+    });
+  }
+
+  requestReturnToOrigin(
+    reference: ShipmentReference,
+  ): Promise<CourierActionResult> {
+    const shipment = this.findShipment(reference.awbNumber);
+    shipment.status = 'RETURN_TO_ORIGIN';
+    shipment.courierStatusCode = 'MOCK_RTO';
+    return Promise.resolve(this.actionResult('Return to origin accepted'));
+  }
+
+  reattemptDelivery(
+    reference: ShipmentReference,
+    input: ReattemptDeliveryInput,
+  ): Promise<CourierActionResult> {
+    this.findShipment(reference.awbNumber);
+    return Promise.resolve(
+      this.actionResult('Delivery reattempt accepted', input),
+    );
+  }
+
+  changePaymentMode(
+    reference: ShipmentReference,
+  ): Promise<CourierActionResult> {
+    this.findShipment(reference.awbNumber);
+    return Promise.resolve(this.actionResult('Payment mode change accepted'));
+  }
+
   private createMockShipment(orderId: string): MockShipment {
     const digest = createHash('sha256').update(orderId).digest('hex');
     return {
@@ -119,5 +195,17 @@ export class MockCourierAdapter implements CourierAdapter {
 
   private statusDescription(status: ShipmentStatus): string {
     return status === 'CANCELLED' ? 'Shipment cancelled' : 'Shipment created';
+  }
+
+  private actionResult(
+    message: string,
+    rawRequest: unknown = {},
+  ): CourierActionResult {
+    return {
+      accepted: true,
+      message,
+      rawRequest,
+      rawResponse: { status: 'SUCCESS', message },
+    };
   }
 }

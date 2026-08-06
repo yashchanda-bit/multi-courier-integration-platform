@@ -21,10 +21,26 @@ POST /api/v1/orders
 GET  /api/v1/orders/{order_id}/track
 POST /api/v1/orders/{order_id}/cancel
 POST /api/v1/orders/bulk
+GET  /api/v1/couriers/serviceability?courier_partner=mock&pincodes=122001,122017
+GET  /api/v1/orders/{order_id}/label
+GET  /api/v1/orders/{order_id}/epod
+POST /api/v1/orders/{order_id}/ndr/reattempt
+POST /api/v1/orders/{order_id}/payment-mode/change
+POST /api/v1/orders/{order_id}/ndr/rto
 GET  /api/v1/batches/{batch_id}
 GET  /api/v1/health/live
 GET  /api/v1/health/ready
 ```
+
+Omit `pincodes` from the serviceability request to retrieve the courier's full
+serviceability export. Optional capabilities are discovered at the adapter
+boundary; a courier that does not implement one returns the normalized
+`COURIER_CAPABILITY_UNSUPPORTED` response without route or DTO changes.
+
+The supplied UrbaneBolt `global-manifest` endpoint is not exposed because the
+documented UAT URL was verified to return HTTP 404 and its contract cannot be
+implemented truthfully. Enable it only after UrbaneBolt supplies a working URL
+and confirmed international-shipment contract.
 
 Consumers send a normalized order and choose a courier using
 `courier_partner`. They do not need to understand the courier's native request or
