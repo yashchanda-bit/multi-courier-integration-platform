@@ -107,4 +107,9 @@ export interface OrderRepository {
   recordTracking(input: RecordTrackingInput): Promise<void>;
   recordCancellation(input: RecordCancellationInput): Promise<void>;
   recordOperationFailure(input: RecordOperationFailureInput): Promise<void>;
+  failStaleProcessingOrders(input: {
+    staleBefore: Date;
+    errorCode: string;
+    errorMessage: string;
+  }): Promise<number>;
 }

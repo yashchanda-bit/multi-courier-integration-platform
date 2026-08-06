@@ -17,6 +17,11 @@ export const environmentValidationSchema = Joi.object({
   BULK_WORKER_ENABLED: Joi.boolean().default(true),
   BULK_WORKER_CONCURRENCY: Joi.number().integer().min(1).max(100).default(10),
   BULK_JOB_RETENTION_SECONDS: Joi.number().integer().min(60).default(86400),
+  ORDER_PROCESSING_TIMEOUT_SECONDS: Joi.number().integer().min(30).default(300),
+  ORDER_RECONCILIATION_INTERVAL_SECONDS: Joi.number()
+    .integer()
+    .min(10)
+    .default(60),
   URBANEBOLT_BASE_URL: Joi.string()
     .uri({ scheme: ['https', 'http'] })
     .default('https://uat.urbanebolt.in'),

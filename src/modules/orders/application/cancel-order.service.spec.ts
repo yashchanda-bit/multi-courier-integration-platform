@@ -43,6 +43,7 @@ describe(CancelOrderService.name, () => {
       recordTracking: jest.fn(),
       recordCancellation: jest.fn(),
       recordOperationFailure: jest.fn(),
+      failStaleProcessingOrders: jest.fn(),
     };
     partners = { findByCode: jest.fn() };
     adapter = {

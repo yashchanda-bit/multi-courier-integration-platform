@@ -297,6 +297,57 @@ export class PrismaOrderRepository implements OrderRepository {
     });
   }
 
+  async failStaleProcessingOrders(input: {
+    staleBefore: Date;
+    errorCode: string;
+    errorMessage: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (transaction) => {
+      const staleOrders = await transaction.order.findMany({
+        where: {
+          status: 'PROCESSING',
+          updatedAt: { lt: input.staleBefore },
+        },
+        select: { id: true },
+        take: 100,
+        orderBy: { updatedAt: 'asc' },
+      });
+      if (staleOrders.length === 0) return 0;
+
+      let claimedCount = 0;
+      for (const staleOrder of staleOrders) {
+        const claimed = await transaction.order.updateMany({
+          where: {
+            id: staleOrder.id,
+            status: 'PROCESSING',
+            updatedAt: { lt: input.staleBefore },
+          },
+          data: {
+            status: 'FAILED',
+            failureCode: input.errorCode,
+            failureMessage: input.errorMessage,
+          },
+        });
+        if (claimed.count === 0) continue;
+
+        await transaction.shipment.updateMany({
+          where: {
+            orderId: staleOrder.id,
+            isActive: true,
+            status: { in: ['PENDING', 'PROCESSING'] },
+          },
+          data: {
+            status: 'FAILED',
+            failureCode: input.errorCode,
+            failureMessage: input.errorMessage,
+          },
+        });
+        claimedCount += 1;
+      }
+      return claimedCount;
+    });
+  }
+
   private mapOrder(order: OrderWithActiveShipment): PersistedOrder {
     const shipment = order.shipments[0];
     if (!shipment) {

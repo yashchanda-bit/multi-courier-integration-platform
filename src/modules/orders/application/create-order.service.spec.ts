@@ -56,6 +56,7 @@ describe(CreateOrderService.name, () => {
       recordTracking: jest.fn(),
       recordCancellation: jest.fn(),
       recordOperationFailure: jest.fn(),
+      failStaleProcessingOrders: jest.fn(),
     };
     courierPartners = { findByCode: jest.fn() };
     adapter = new MockCourierAdapter();

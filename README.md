@@ -123,27 +123,36 @@ development ports and credentials in `.env` when necessary.
 
 ## Environment variables
 
-| Variable                                              | Purpose                           | Local default                                |
-| ----------------------------------------------------- | --------------------------------- | -------------------------------------------- |
-| `NODE_ENV` / `PORT`                                   | Runtime mode and HTTP port        | `development` / `3000`                       |
-| `DATABASE_URL`                                        | PostgreSQL connection             | Local Compose database                       |
-| `REDIS_URL`                                           | BullMQ Redis connection           | `redis://localhost:6379`                     |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Local Compose database            | `courier_platform` / `postgres` / `postgres` |
-| `POSTGRES_PORT` / `REDIS_PORT`                        | Local published ports             | `5432` / `6379`                              |
-| `ENABLE_MOCK_COURIER`                                 | Enables MockCourier during seed   | `true`                                       |
-| `BULK_QUEUE_NAME`                                     | Redis queue name                  | `bulk-orders`                                |
-| `BULK_WORKER_ENABLED`                                 | Runs workers in this process      | `true`                                       |
-| `BULK_WORKER_CONCURRENCY`                             | Concurrent bulk items per process | `10`                                         |
-| `BULK_JOB_RETENTION_SECONDS`                          | Completed-job retention           | `86400`                                      |
-| `URBANEBOLT_BASE_URL`                                 | UrbaneBolt API origin             | UAT origin                                   |
-| `URBANEBOLT_USERNAME` / `URBANEBOLT_PASSWORD`         | Courier credentials               | Empty                                        |
-| `URBANEBOLT_CUSTOMER_CODE`                            | Manifest customer identifier      | Empty                                        |
-| `URBANEBOLT_TIMEOUT_MS`                               | Per-request timeout               | `5000`                                       |
-| `URBANEBOLT_RETRY_MAX_ATTEMPTS`                       | Bounded transient attempts        | `3`                                          |
-| `URBANEBOLT_RETRY_BASE_DELAY_MS`                      | Backoff base delay                | `250`                                        |
+| Variable                                              | Purpose                            | Local default                                |
+| ----------------------------------------------------- | ---------------------------------- | -------------------------------------------- |
+| `NODE_ENV` / `PORT`                                   | Runtime mode and HTTP port         | `development` / `3000`                       |
+| `DATABASE_URL`                                        | PostgreSQL connection              | Local Compose database                       |
+| `REDIS_URL`                                           | BullMQ Redis connection            | `redis://localhost:6379`                     |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Local Compose database             | `courier_platform` / `postgres` / `postgres` |
+| `POSTGRES_PORT` / `REDIS_PORT`                        | Local published ports              | `5432` / `6379`                              |
+| `ENABLE_MOCK_COURIER`                                 | Enables MockCourier during seed    | `true`                                       |
+| `BULK_QUEUE_NAME`                                     | Redis queue name                   | `bulk-orders`                                |
+| `BULK_WORKER_ENABLED`                                 | Runs workers in this process       | `true`                                       |
+| `BULK_WORKER_CONCURRENCY`                             | Concurrent bulk items per process  | `10`                                         |
+| `BULK_JOB_RETENTION_SECONDS`                          | Completed-job retention            | `86400`                                      |
+| `ORDER_PROCESSING_TIMEOUT_SECONDS`                    | Maximum synchronous processing age | `300`                                        |
+| `ORDER_RECONCILIATION_INTERVAL_SECONDS`               | Stale-order scan interval          | `60`                                         |
+| `URBANEBOLT_BASE_URL`                                 | UrbaneBolt API origin              | UAT origin                                   |
+| `URBANEBOLT_USERNAME` / `URBANEBOLT_PASSWORD`         | Courier credentials                | Empty                                        |
+| `URBANEBOLT_CUSTOMER_CODE`                            | Manifest customer identifier       | Empty                                        |
+| `URBANEBOLT_TIMEOUT_MS`                               | Per-request timeout                | `5000`                                       |
+| `URBANEBOLT_RETRY_MAX_ATTEMPTS`                       | Bounded transient attempts         | `3`                                          |
+| `URBANEBOLT_RETRY_BASE_DELAY_MS`                      | Backoff base delay                 | `250`                                        |
 
 `.env.example` is the authoritative template. Use a managed secret store outside
 local development.
+
+Orders are reserved with a processing lease before a courier is called. On
+startup and at the configured interval, the application atomically changes
+expired `PROCESSING` orders and their active shipments to `FAILED` with the
+`PROCESSING_TIMEOUT` reason. The guarded update is safe when multiple application
+instances run concurrently and never retries a courier call whose outcome is
+unknown.
 
 ## Quality checks
 

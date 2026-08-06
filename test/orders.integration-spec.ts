@@ -134,6 +134,45 @@ describe('order lifecycle APIs (database integration)', () => {
     ).toBe(1);
   });
 
+  it('atomically fails an order and shipment after the processing lease expires', async () => {
+    const order = normalizedOrderFixture({
+      orderId: 'INTEGRATION-STALE-ORDER-1001',
+    });
+    const partner = await prisma.courierPartner.findUniqueOrThrow({
+      where: { code: 'mock' },
+    });
+    const reservation = await orders.reserve({
+      order,
+      requestHash: 'b'.repeat(64),
+      courierPartnerId: partner.id,
+    });
+    await prisma.order.update({
+      where: { id: reservation.order.id },
+      data: { updatedAt: new Date('2026-08-06T00:00:00.000Z') },
+    });
+
+    await expect(
+      orders.failStaleProcessingOrders({
+        staleBefore: new Date('2026-08-06T00:05:00.000Z'),
+        errorCode: 'PROCESSING_TIMEOUT',
+        errorMessage: 'Order processing exceeded its configured time limit',
+      }),
+    ).resolves.toBe(1);
+
+    const stored = await prisma.order.findUniqueOrThrow({
+      where: { id: reservation.order.id },
+      include: { shipments: true },
+    });
+    expect(stored).toMatchObject({
+      status: 'FAILED',
+      failureCode: 'PROCESSING_TIMEOUT',
+    });
+    expect(stored.shipments[0]).toMatchObject({
+      status: 'FAILED',
+      failureCode: 'PROCESSING_TIMEOUT',
+    });
+  });
+
   it('persists raw request, response, and HTTP status for a failed courier attempt', async () => {
     const order = normalizedOrderFixture({
       orderId: 'INTEGRATION-FAILED-AUDIT-1005',

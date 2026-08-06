@@ -6,6 +6,7 @@ import { CancelOrderService } from './application/cancel-order.service';
 import { ORDER_REPOSITORY } from './domain/order.repository';
 import { PrismaOrderRepository } from './infrastructure/prisma-order.repository';
 import { OrdersController } from './presentation/orders.controller';
+import { ReconcileStaleOrdersService } from './application/reconcile-stale-orders.service';
 
 @Module({
   imports: [CouriersModule],
@@ -14,6 +15,7 @@ import { OrdersController } from './presentation/orders.controller';
     CreateOrderService,
     TrackOrderService,
     CancelOrderService,
+    ReconcileStaleOrdersService,
     { provide: ORDER_REPOSITORY, useClass: PrismaOrderRepository },
   ],
   exports: [CreateOrderService],
